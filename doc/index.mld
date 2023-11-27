@@ -1,0 +1,403 @@
+{0:index The [pretty_expressive] library}
+
+This library implements a pretty expressive printer, following the algorithm presented in {{: https://dl.acm.org/doi/abs/10.1145/3622837 }A Pretty Expressive Printer (OOPSLA'23)}.
+The pretty printer is expressive, provably optimal, and practically efficient.
+
+{1 Getting Started}
+
+General-purpose pretty printing is a process that produces human readable text from structured data.
+Users encode the structured data together with styling choices in an abstract {i document} {{!Pretty_expressive.Signature.PrinterT.doc} [doc]}. This document contains printing instructions: things like text, newlines, and indentation.
+It can also contain {i choices} ({{!Pretty_expressive.Signature.PrinterT.(<|>)}[<|>]}) between two or more alternatives, resulting in many possible layouts for a document.
+{!Pretty_expressive}’s job is to pick a prettiest layout (according to a specified optimality objective)
+from among all of the choices.
+E.g., the one that minimizes the number of lines while not exceeding the page width limit.
+
+Here’s a simple example of pretty printing a document encoding a fragment of code.
+
+{[
+open Pretty_expressive
+
+(** Prints the example document [d] with the page width limit [w] *)
+let print_doc (w : int): unit =
+  let cf = Printer.default_cost_factory ~page_width:w () in
+  let module P = Printer.Make (val cf) in
+  let open P in
+
+  let d = text "while (true) {" <>
+          nest 4
+            (nl <> text "f();" <> nl <> text "if (done())" <>
+             (let exit_d = text "exit();" in
+              (space <> exit_d) <|> nest 4 (nl <> exit_d))) <>
+          nl <> text "}"
+  in
+  pretty_print d
+]}
+
+There is a lot of code above, so let's unpack it.
+
+{2 Document Construction}
+
+In the above code, [let d = text "while (true) {" <> ....] defines a document [d].
+
+{ul {- {{!Pretty_expressive.Signature.PrinterT.text}[text]} prints a string.}
+    {- {{!Pretty_expressive.Signature.PrinterT.(<>)}[<>]} prints a concatenation of two documents.}
+    {- {{!Pretty_expressive.Signature.PrinterT.nl}[nl]} prints a newline.}
+    {- {{!Pretty_expressive.Signature.PrinterT.nest}[nest]} adds indentation level so that
+       {{!Pretty_expressive.Signature.PrinterT.nl}[nl]} adds indentation spaces.}
+    {- {{!Pretty_expressive.Signature.PrinterT.(<|>)}[<|>]} creates a choice.}}
+
+As a result, the above document [d] encodes two possible layouts:
+
+{v
+while (true) {
+    f();
+    if (done()) exit();
+}
+v}
+
+and
+
+{v
+while (true) {
+    f();
+    if (done())
+        exit();
+}
+v}
+
+{2 Printer Construction}
+
+Most pretty printers are parameterized by a {i page width limit}, which indicates
+the number of characters that each line should not exceed.
+{!Pretty_expressive} is instead parameterized by a {{!factory} {i cost factory}},
+which can control not only the page width limit, but also other aspects of prettiness.
+For the sake of simplicity, we will for now use a pre-defined cost factory
+{{!Pretty_expressive.Printer.default_cost_factory}[Printer.default_cost_factory]}, which only allows the page width limit adjustment through
+the labeled argument [~page_width]. Thus,
+[let cf = Printer.default_cost_factory ~page_width:w ()] creates a
+({{: https://dev.realworldocaml.org/first-class-modules.html}first-class module})
+cost factory [cf] that sets the page width limit to [w].
+
+The pretty printer can then be instantiated by using {{!Pretty_expressive.Printer.Make}[Printer.Make]}.
+It is a functor that consumes a {{!Pretty_expressive.Signature.CostFactory} [CostFactory]} module.
+Here, [let module P = Printer.Make (val cf)] creates a pretty printer [P]
+with the above cost factory.
+
+We then [let open P] so that combinators like {{!Pretty_expressive.Signature.PrinterT.text}[text]}, {{!Pretty_expressive.Signature.PrinterT.(<>)}[<>]}, and the pretty printing function {{!Pretty_expressive.Signature.PrinterT.pretty_print}[pretty_print]}
+are in scope.
+
+{2 Putting them all together}
+
+With the above setup, we can pretty-print [d] with the cost factory [cf] by calling [pretty_print d].
+This returns a string that we can then put on screen.
+
+Let's now actually use the pretty printer.
+
+{[let () = print_doc 80 |> print_endline]}
+
+would output:
+
+{v
+while (true) {
+    f();
+    if (done()) exit();
+}
+v}
+
+because the layout fits the page width limit, while having fewer lines.
+By contrast:
+
+{[let () = print_doc 20 |> print_endline]}
+
+would output:
+
+{v
+while (true) {
+    f();
+    if (done())
+        exit();
+}
+v}
+
+because the other layout does not fit the page width limit,
+leaving this output layout as the only option.
+
+{2 Alternative Document Construction}
+
+There are many ways to construct a document that encodes the same set of layouts.
+Some may be easier than the other.
+
+For example, another way to construct a document for the above example could be:
+
+{[
+  let d = text "while (true) {" <>
+          nest 4
+            (nl <> text "f();" <> nl <> text "if (done())" <>
+             group (nest 4 (nl <> text "exit();"))) <>
+          nl <> text "}"
+]}
+
+Here, the {{!Pretty_expressive.Signature.PrinterT.group}[group]} combinator is used.
+It creates a choice: whether to collapse {{!Pretty_expressive.Signature.PrinterT.nl}[nl]}
+to a single space or not.
+
+See {!Pretty_expressive.Signature.PrinterT} for the full list of combinators that we provide.
+Since combinators are simply regular functions, users may also compose the existing combinators together
+to create new user-defined combinators.
+
+{1 API Reference}
+
+See the documentation for the module {!pretty_expressive}.
+
+{1 Explainers}
+
+In this section, we explain some important concepts.
+The full design consideration of {!Pretty_expressive} can be found in {{: https://dl.acm.org/doi/abs/10.1145/3622837 }the paper}.
+
+{2:bestpractice Best Practice for Document Construction}
+
+While we can put arbitrary sub-documents as the operands of the choice combinator {{!Pretty_expressive.Signature.PrinterT.(<|>)}[<|>]},
+we should {i share} sub-documents across choices.
+This matters because the performance of {!Pretty_expressive} depends on the {i DAG size} of the input document.
+Without sharing, the input document would get unfolded into a tree, whose size could be exponentially large
+compared to the possible DAG size.
+
+As an example, say we want to pretty print an S-expression with three possible styles for each list node:
+the horizontal style, the vertical style, and the argument list style. That is:
+
+{v
+(a b c d)
+v}
+
+could be printed as itself or
+
+{v
+(a
+ b
+ c
+ d)
+v}
+
+or
+
+{v
+(a b
+   c
+   d)
+v}
+
+We can construct a function to convert an S-expression to a document as follows:
+
+{[
+type sexp = Atom of string | List of sexp list
+
+let print_sexp (s : sexp) (w : int) =
+  let cf = Printer.default_cost_factory ~page_width:w () in
+  let module P = Printer.Make (val cf) in
+  let open P in
+
+  let acat = fold_doc (fun x y -> x <+> space <+> y) in
+
+  let rec pretty (s : sexp) =
+    match s with
+    | Atom s -> text s
+    | List [] -> lparen <+> rparen
+    | List [x] -> lparen <+> pretty x <+> rparen
+    | List (x :: xs) ->
+      let x_d = pretty x in
+      let xs_d = List.map pretty xs in
+      lparen <+>
+      (acat (x_d :: xs_d) <|> (* the horizontal style *)
+       vcat (x_d :: xs_d) <|> (* the vertical style *)
+       (x_d <+> space <+> vcat xs_d)) <+> (* the argument list style *)
+      rparen
+  in
+  pretty_print (pretty s)
+]}
+
+The important point is that we reuse [x_d] and [xs_d] across [<|>].
+Had we written the following code instead,
+document construction could take exponential time, and the resulting
+document whose DAG size is very large would also cause pretty-printing
+to be inefficient.
+
+{[
+      lparen <+>
+      (acat (pretty x :: List.map pretty xs) <|> (* the horizontal style *)
+       vcat (pretty x :: List.map pretty xs) <|> (* the vertical style *)
+       (pretty x <+> space <+> vcat List.map pretty xs)) <+> (* the argument list style *)
+      rparen
+]}
+
+{2:complimit The Computation Width Limit}
+
+Unlike other pretty printers, {!Pretty_expressive} needs an additional parameter:
+the {i computation width limit}.
+Regular users should not need to concern much with this parameter
+({{!Pretty_expressive.Printer.default_cost_factory}[default_cost_factory]} will already provide a sensible value for the parameter),
+but advanced users who need a fine-grained control may want to adjust this parameter.
+
+The parameter is used by the pretty printer to bound the computation.
+On the flip side, the pretty printer is only guaranteed to return an optimal layout among layout printings that do not {i exceed} the parameter.
+As a result, if the parameter is too high, the performance could be negatively impacted,
+but if the parameter is too low, the output layout quality could be negatively impacted.
+
+{!Pretty_expressive} employs various heuristics to make the output layout pretty even when the computation width limit is exceeded, however.
+In most applications, the value of {m 1.2 \times w} should suffice, where {m w} is the page width limit.
+
+{3 Technical Notes}
+
+A layout printing {i exceeds} the computation width limit when either the column position or indentation level exceeds the limit. For example:
+
+{[
+text "Racket"
+]}
+
+exceeds the computation width limit of 5, since there are 6 characters in a line. Similarly:
+
+{[
+nest 6 (text "Rack")
+]}
+
+exceeds the computation width limit of 5, since the indentation level exceeds 5 (even though this indentation level is completely unused).
+
+When all possible layout printing due to a document exceeds the computation width limit,
+{!Pretty_expressive} will still output a layout, with no guarantee that the layout is optimal.
+In such case, we say that the output layout is {i tainted}. The {{!Pretty_expressive.Util.info}[info]} record and the {{!Pretty_expressive.Signature.PrinterT.print}[print]} function can be used to find if the output layout is tainted or not.
+
+{2:factory Cost Factory}
+
+Pretty printers choose an optimal layout from a document by minimizing an {i optimality objective}.
+Unlike other pretty printers, which have built-in optimality objectives,
+{!pretty_expressive} allows users to customize an optimality objective via the {i cost factory}.
+
+The cost factory interface is given in {{!Pretty_expressive.Signature.CostFactory}[CostFactory]}.
+A valid cost factory must also satisfy the interface, as well as various contracts specified in
+the documentation of {{!Pretty_expressive.Signature.CostFactory}[CostFactory]}.
+These contracts ensure that the concept of a cost for a layout is well-defined,
+and make it possible to efficiently find a layout with minimal cost.
+
+See {{!Pretty_expressive.Printer.default_cost_factory}[default_cost_factory]} for an example of a cost factory.
+
+{3 Custom Cost Factory}
+
+Consider the example in {!bestpractice}. Each list node can be rendered with three possible styles:
+the horizontal style, the vertical style, and the argument list style.
+
+{[
+# let example_sexp =
+    List [Atom "abc"; Atom "def"; List [Atom "ghi"; Atom "jkl"; Atom "mno"]];;
+val example_sexp : sexp =
+  List [Atom "abc"; Atom "def"; List [Atom "ghi"; Atom "jkl"; Atom "mno"]]
+# print_sexp example_sexp 15 |> print_endline;;
+(abc
+ def
+ (ghi jkl mno))
+- : unit = ()
+]}
+
+Indeed, this is an optimal layout according to {{!Pretty_expressive.Printer.default_cost_factory}[default_cost_factory]},
+because it does not have any badness, and two newlines are minimal.
+
+However, let’s say that we consider the vertical style to be not as pretty.
+The vertical style should still be a possibility however,
+since it can help us avoid going over the page width limit and minimize the number of newlines in many situations.
+We simply would prefer other styles when all else is equal. In this case, we would prefer the output:
+
+{v
+(abc def
+     (ghi jkl
+          mno))
+v}
+
+To address this issue, we construct a new cost factory that is similar to
+{{!Pretty_expressive.Printer.default_cost_factory}[default_cost_factory]},
+but with an extra component: the {i style cost}.
+
+{[
+let my_cost_factory ~page_width ?computation_width () =
+  (module struct
+    type t = int * int * int
+    let limit = match computation_width with
+      | None -> (float_of_int page_width) *. 1.2 |> int_of_float
+      | Some computation_width -> computation_width
+
+    let text pos len =
+      let stop = pos + len in
+      if stop > page_width then
+        let maxwc = max page_width pos in
+        let a = maxwc - page_width in
+        let b = stop - maxwc in
+        (b * (2*a + b), 0, 0)
+      else
+        (0, 0, 0)
+
+    let newline _ = (0, 1, 0)
+
+    let combine (o1, h1, s1) (o2, h2, s2) =
+      (o1 + o2, h1 + h2, s1 + s2)
+
+    let le (o1, h1, s1) (o2, h2, s2) =
+      if o1 = o2 then
+        if h1 = h2 then s1 <= s2
+        else h1 < h2
+      else o1 < o2
+
+    let debug (o, h, s) = Printf.sprintf "(%d %d %d)" o h s
+
+  end: Signature.CostFactory with type t = int * int * int)
+]}
+
+We now construct a function to convert an S-expression into a document,
+and utilize the {{!Pretty_expressive.Signature.PrinterT.val-cost}[cost]} construct
+to add a style cost to the vertical style document, thus discouraging it.
+
+{[
+let revised_print_sexp (s : sexp) (w : int) =
+  let cf = my_cost_factory ~page_width:w () in
+  let module P = Printer.Make (val cf) in
+  let open P in
+
+  let acat = fold_doc (fun x y -> x <+> space <+> y) in
+
+  let rec pretty (s : sexp) =
+    match s with
+    | Atom s -> text s
+    | List [] -> lparen <+> rparen
+    | List [x] -> lparen <+> pretty x <+> rparen
+    | List (x :: xs) ->
+      let x_d = pretty x in
+      let xs_d = List.map pretty xs in
+      lparen <+>
+      (acat (x_d :: xs_d) <|> (* the horizontal style *)
+       (cost (0, 0, 1) (vcat (x_d :: xs_d))) <|> (* the vertical style -- penalized *)
+       (x_d <+> space <+> vcat xs_d)) <+> (* the argument list style *)
+      rparen
+  in
+  pretty_print (pretty s)
+]}
+
+Now we can pretty print as we desired:
+
+{[
+# revised_print_sexp example_sexp 15 |> print_endline;;
+(abc def
+     (ghi jkl
+          mno))
+- : unit = ()
+]}
+
+This does not mean that the vertical style won't ever be used, however.
+It is simply discouraged.
+With an even lower page width limit,
+the vertical style is the only way to avoid overflow, so it is employed.
+
+{[
+# revised_print_sexp example_sexp 10 |> print_endline;;
+(abc
+ def
+ (ghi
+  jkl
+  mno))
+- : unit = ()
+]}

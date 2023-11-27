@@ -1,0 +1,3 @@
+(test
+ (name pretty_expressive)
+ (libraries pretty_expressive alcotest))
