@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Printer (pretty_expressive.Pretty_expressive.Printer)</title><link rel="stylesheet" href="../../../odoc.support/odoc.css"/><meta charset="utf-8"/><meta name="generator" content="odoc 2.2.1"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><script src="../../../odoc.support/highlight.pack.js"></script><script>hljs.initHighlightingOnLoad();</script></head><body class="odoc"><nav class="odoc-nav"><a href="../index.html">Up</a> – <a href="../../index.html">pretty_expressive</a> &#x00BB; <a href="../index.html">Pretty_expressive</a> &#x00BB; Printer</nav><header class="odoc-preamble"><h1>Module <code><span>Pretty_expressive.Printer</span></code></h1><p>This module provides a pretty expressive printer.</p></header><div class="odoc-content"><div class="odoc-spec"><div class="spec module anchored" id="module-Make"><a href="#module-Make" class="anchor"></a><code><span><span class="keyword">module</span> <a href="Make/index.html">Make</a></span><span>
+  (<a href="Make/argument-1-C/index.html">C</a> : <a href="../Signature/module-type-CostFactory/index.html">Signature.CostFactory</a>) : 
+  <a href="../Signature/module-type-PrinterT/index.html">Signature.PrinterT</a> <span class="keyword">with</span> <span><span class="keyword">type</span> <a href="../Signature/module-type-PrinterT/index.html#type-cost">cost</a> = <a href="Make/argument-1-C/index.html#type-t">C.t</a></span></span></code></div><div class="spec-doc"><p>The pretty printer and doc combinators, parameterized by a cost factory. See <a href="../Signature/module-type-PrinterT/index.html"><code>Signature.PrinterT</code></a> for details.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-default_cost_factory"><a href="#val-default_cost_factory" class="anchor"></a><code><span><span class="keyword">val</span> default_cost_factory : 
+  <span>page_width:int <span class="arrow">&#45;&gt;</span></span>
+  <span>?computation_width:int <span class="arrow">&#45;&gt;</span></span>
+  <span>unit <span class="arrow">&#45;&gt;</span></span>
+  <span>(<span class="keyword">module</span> <a href="../Signature/module-type-CostFactory/index.html">Signature.CostFactory</a>
+  <span class="keyword">with</span> <span class="keyword">type</span> <a href="../Signature/module-type-CostFactory/index.html#type-t">t</a> = int * int)</span></span></code></div><div class="spec-doc"><p>The default cost factory, parameterized by the page width limit <code>page_width</code>, and optionally <a href="../../index.html#complimit">the computation width limit</a> <code>computation_width</code>. When the computation width limit is not specified, it is set to <code>1.2 * page_width</code>.</p><p>In this cost factory, the cost type <code>t</code> is a pair of natural numbers, where the first component is <i>badness</i>, which is roughly speaking the sum of squared overflows, and the second component is the height (number of newlines).</p><p>Internally, <code>default_cost_factory</code> is defined as:</p><pre class="language-ocaml"><code>let default_cost_factory ~page_width ?computation_width () =
+  (module struct
+    type t = int * int
+    let limit = match computation_width with
+      | None -&gt; (float_of_int page_width) *. 1.2 |&gt; int_of_float
+      | Some computation_width -&gt; computation_width
+
+    let text pos len =
+      let stop = pos + len in
+      if stop &gt; page_width then
+        let maxwc = max page_width pos in
+        let a = maxwc - page_width in
+        let b = stop - maxwc in
+        (b * (2*a + b), 0)
+      else
+        (0, 0)
+
+    let newline _ = (0, 1)
+
+    let combine (o1, h1) (o2, h2) =
+      (o1 + o2, h1 + h2)
+
+    let le (o1, h1) (o2, h2) =
+      if o1 = o2 then h1 &lt;= h2 else o1 &lt; o2
+
+    let debug (o, h) = Printf.sprintf &quot;(%d %d)&quot; o h
+
+  end: Signature.CostFactory with type t = int * int)</code></pre></div></div></div></body></html>

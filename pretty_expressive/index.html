@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>index (pretty_expressive.index)</title><link rel="stylesheet" href="../odoc.support/odoc.css"/><meta charset="utf-8"/><meta name="generator" content="odoc 2.2.1"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><script src="../odoc.support/highlight.pack.js"></script><script>hljs.initHighlightingOnLoad();</script><link rel="stylesheet" href="../odoc.support/katex.min.css"/><script src="../odoc.support/katex.min.js"></script><script>
+//<![CDATA[
+
+          document.addEventListener("DOMContentLoaded", function () {
+            var elements = Array.from(document.getElementsByClassName("odoc-katex-math"));
+            for (var i = 0; i < elements.length; i++) {
+              var el = elements[i];
+              var content = el.textContent;
+              var new_el = document.createElement("span");
+              new_el.setAttribute("class", "odoc-katex-math-rendered");
+              var display = el.classList.contains("display");
+              katex.render(content, new_el, { throwOnError: false, displayMode: display });
+              el.replaceWith(new_el);
+            }
+          });
+        
+//]]>
+</script></head><body class="odoc"><nav class="odoc-nav"><a href="../index.html">Up</a> – pretty_expressive</nav><header class="odoc-preamble"><h1 id="index"><a href="#index" class="anchor"></a>The <code>pretty_expressive</code> library</h1><p>This library implements a pretty expressive printer, following the algorithm presented in <a href="https://dl.acm.org/doi/abs/10.1145/3622837">A Pretty Expressive Printer (OOPSLA'23)</a>. The pretty printer is expressive, provably optimal, and practically efficient.</p></header><nav class="odoc-toc"><ul><li><a href="#getting-started">Getting Started</a><ul><li><a href="#document-construction">Document Construction</a></li><li><a href="#printer-construction">Printer Construction</a></li><li><a href="#putting-them-all-together">Putting them all together</a></li><li><a href="#alternative-document-construction">Alternative Document Construction</a></li></ul></li><li><a href="#api-reference">API Reference</a></li><li><a href="#explainers">Explainers</a><ul><li><a href="#bestpractice">Best Practice for Document Construction</a></li><li><a href="#complimit">The Computation Width Limit</a><ul><li><a href="#technical-notes">Technical Notes</a></li></ul></li><li><a href="#factory">Cost Factory</a><ul><li><a href="#custom-cost-factory">Custom Cost Factory</a></li></ul></li></ul></li></ul></nav><div class="odoc-content"><h2 id="getting-started"><a href="#getting-started" class="anchor"></a>Getting Started</h2><p>General-purpose pretty printing is a process that produces human readable text from structured data. Users encode the structured data together with styling choices in an abstract <i>document</i> <a href="Pretty_expressive/Signature/module-type-PrinterT/index.html#type-doc"><code>doc</code></a>. This document contains printing instructions: things like text, newlines, and indentation. It can also contain <i>choices</i> (<a href="Pretty_expressive/Signature/module-type-PrinterT/index.html#val-(&lt;|&gt;)"><code>&lt;|&gt;</code></a>) between two or more alternatives, resulting in many possible layouts for a document. <a href="Pretty_expressive/index.html"><code>Pretty_expressive</code></a>’s job is to pick a prettiest layout (according to a specified optimality objective) from among all of the choices. E.g., the one that minimizes the number of lines while not exceeding the page width limit.</p><p>Here’s a simple example of pretty printing a document encoding a fragment of code.</p><pre class="language-ocaml"><code>open Pretty_expressive
+
+(** Prints the example document [d] with the page width limit [w] *)
+let print_doc (w : int): unit =
+  let cf = Printer.default_cost_factory ~page_width:w () in
+  let module P = Printer.Make (val cf) in
+  let open P in
+
+  let d = text &quot;while (true) {&quot; &lt;&gt;
+          nest 4
+            (nl &lt;&gt; text &quot;f();&quot; &lt;&gt; nl &lt;&gt; text &quot;if (done())&quot; &lt;&gt;
+             (let exit_d = text &quot;exit();&quot; in
+              (space &lt;&gt; exit_d) &lt;|&gt; nest 4 (nl &lt;&gt; exit_d))) &lt;&gt;
+          nl &lt;&gt; text &quot;}&quot;
+  in
+  pretty_print d</code></pre><p>There is a lot of code above, so let's unpack it.</p><h3 id="document-construction"><a href="#document-construction" class="anchor"></a>Document Construction</h3><p>In the above code, <code>let d = text &quot;while (true) {&quot; &lt;&gt; ....</code> defines a document <code>d</code>.</p><ul><li><a href="Pretty_expressive/Signature/module-type-PrinterT/index.html#val-text"><code>text</code></a> prints a string.</li><li><a href="Pretty_expressive/Signature/module-type-PrinterT/index.html#val-(&lt;&gt;)"><code>&lt;&gt;</code></a> prints a concatenation of two documents.</li><li><a href="Pretty_expressive/Signature/module-type-PrinterT/index.html#val-nl"><code>nl</code></a> prints a newline.</li><li><a href="Pretty_expressive/Signature/module-type-PrinterT/index.html#val-nest"><code>nest</code></a> adds indentation level so that <a href="Pretty_expressive/Signature/module-type-PrinterT/index.html#val-nl"><code>nl</code></a> adds indentation spaces.</li><li><a href="Pretty_expressive/Signature/module-type-PrinterT/index.html#val-(&lt;|&gt;)"><code>&lt;|&gt;</code></a> creates a choice.</li></ul><p>As a result, the above document <code>d</code> encodes two possible layouts:</p><pre>while (true) {
+    f();
+    if (done()) exit();
+}</pre><p>and</p><pre>while (true) {
+    f();
+    if (done())
+        exit();
+}</pre><h3 id="printer-construction"><a href="#printer-construction" class="anchor"></a>Printer Construction</h3><p>Most pretty printers are parameterized by a <i>page width limit</i>, which indicates the number of characters that each line should not exceed. <a href="Pretty_expressive/index.html"><code>Pretty_expressive</code></a> is instead parameterized by a <a href="#factory"><i>cost factory</i></a>, which can control not only the page width limit, but also other aspects of prettiness. For the sake of simplicity, we will for now use a pre-defined cost factory <a href="Pretty_expressive/Printer/index.html#val-default_cost_factory"><code>Printer.default_cost_factory</code></a>, which only allows the page width limit adjustment through the labeled argument <code>~page_width</code>. Thus, <code>let cf = Printer.default_cost_factory ~page_width:w ()</code> creates a (<a href="https://dev.realworldocaml.org/first-class-modules.html">first-class module</a>) cost factory <code>cf</code> that sets the page width limit to <code>w</code>.</p><p>The pretty printer can then be instantiated by using <a href="Pretty_expressive/Printer/Make/index.html"><code>Printer.Make</code></a>. It is a functor that consumes a <a href="Pretty_expressive/Signature/module-type-CostFactory/index.html"><code>CostFactory</code></a> module. Here, <code>let module P = Printer.Make (val cf)</code> creates a pretty printer <code>P</code> with the above cost factory.</p><p>We then <code>let open P</code> so that combinators like <a href="Pretty_expressive/Signature/module-type-PrinterT/index.html#val-text"><code>text</code></a>, <a href="Pretty_expressive/Signature/module-type-PrinterT/index.html#val-(&lt;&gt;)"><code>&lt;&gt;</code></a>, and the pretty printing function <a href="Pretty_expressive/Signature/module-type-PrinterT/index.html#val-pretty_print"><code>pretty_print</code></a> are in scope.</p><h3 id="putting-them-all-together"><a href="#putting-them-all-together" class="anchor"></a>Putting them all together</h3><p>With the above setup, we can pretty-print <code>d</code> with the cost factory <code>cf</code> by calling <code>pretty_print d</code>. This returns a string that we can then put on screen.</p><p>Let's now actually use the pretty printer.</p><pre class="language-ocaml"><code>let () = print_doc 80 |&gt; print_endline</code></pre><p>would output:</p><pre>while (true) {
+    f();
+    if (done()) exit();
+}</pre><p>because the layout fits the page width limit, while having fewer lines. By contrast:</p><pre class="language-ocaml"><code>let () = print_doc 20 |&gt; print_endline</code></pre><p>would output:</p><pre>while (true) {
+    f();
+    if (done())
+        exit();
+}</pre><p>because the other layout does not fit the page width limit, leaving this output layout as the only option.</p><h3 id="alternative-document-construction"><a href="#alternative-document-construction" class="anchor"></a>Alternative Document Construction</h3><p>There are many ways to construct a document that encodes the same set of layouts. Some may be easier than the other.</p><p>For example, another way to construct a document for the above example could be:</p><pre class="language-ocaml"><code>let d = text &quot;while (true) {&quot; &lt;&gt;
+        nest 4
+          (nl &lt;&gt; text &quot;f();&quot; &lt;&gt; nl &lt;&gt; text &quot;if (done())&quot; &lt;&gt;
+           group (nest 4 (nl &lt;&gt; text &quot;exit();&quot;))) &lt;&gt;
+        nl &lt;&gt; text &quot;}&quot;</code></pre><p>Here, the <a href="Pretty_expressive/Signature/module-type-PrinterT/index.html#val-group"><code>group</code></a> combinator is used. It creates a choice: whether to collapse <a href="Pretty_expressive/Signature/module-type-PrinterT/index.html#val-nl"><code>nl</code></a> to a single space or not.</p><p>See <a href="Pretty_expressive/Signature/module-type-PrinterT/index.html"><code>Pretty_expressive.Signature.PrinterT</code></a> for the full list of combinators that we provide. Since combinators are simply regular functions, users may also compose the existing combinators together to create new user-defined combinators.</p><h2 id="api-reference"><a href="#api-reference" class="anchor"></a>API Reference</h2><p>See the documentation for the module <a href="Pretty_expressive/index.html"><code>Pretty_expressive</code></a>.</p><h2 id="explainers"><a href="#explainers" class="anchor"></a>Explainers</h2><p>In this section, we explain some important concepts. The full design consideration of <a href="Pretty_expressive/index.html"><code>Pretty_expressive</code></a> can be found in <a href="https://dl.acm.org/doi/abs/10.1145/3622837">the paper</a>.</p><h3 id="bestpractice"><a href="#bestpractice" class="anchor"></a>Best Practice for Document Construction</h3><p>While we can put arbitrary sub-documents as the operands of the choice combinator <a href="Pretty_expressive/Signature/module-type-PrinterT/index.html#val-(&lt;|&gt;)"><code>&lt;|&gt;</code></a>, we should <i>share</i> sub-documents across choices. This matters because the performance of <a href="Pretty_expressive/index.html"><code>Pretty_expressive</code></a> depends on the <i>DAG size</i> of the input document. Without sharing, the input document would get unfolded into a tree, whose size could be exponentially large compared to the possible DAG size.</p><p>As an example, say we want to pretty print an S-expression with three possible styles for each list node: the horizontal style, the vertical style, and the argument list style. That is:</p><pre>(a b c d)</pre><p>could be printed as itself or</p><pre>(a
+ b
+ c
+ d)</pre><p>or</p><pre>(a b
+   c
+   d)</pre><p>We can construct a function to convert an S-expression to a document as follows:</p><pre class="language-ocaml"><code>type sexp = Atom of string | List of sexp list
+
+let print_sexp (s : sexp) (w : int) =
+  let cf = Printer.default_cost_factory ~page_width:w () in
+  let module P = Printer.Make (val cf) in
+  let open P in
+
+  let acat = fold_doc (fun x y -&gt; x &lt;+&gt; space &lt;+&gt; y) in
+
+  let rec pretty (s : sexp) =
+    match s with
+    | Atom s -&gt; text s
+    | List [] -&gt; lparen &lt;+&gt; rparen
+    | List [x] -&gt; lparen &lt;+&gt; pretty x &lt;+&gt; rparen
+    | List (x :: xs) -&gt;
+      let x_d = pretty x in
+      let xs_d = List.map pretty xs in
+      lparen &lt;+&gt;
+      (acat (x_d :: xs_d) &lt;|&gt; (* the horizontal style *)
+       vcat (x_d :: xs_d) &lt;|&gt; (* the vertical style *)
+       (x_d &lt;+&gt; space &lt;+&gt; vcat xs_d)) &lt;+&gt; (* the argument list style *)
+      rparen
+  in
+  pretty_print (pretty s)</code></pre><p>The important point is that we reuse <code>x_d</code> and <code>xs_d</code> across <code>&lt;|&gt;</code>. Had we written the following code instead, document construction could take exponential time, and the resulting document whose DAG size is very large would also cause pretty-printing to be inefficient.</p><pre class="language-ocaml"><code>lparen &lt;+&gt;
+(acat (pretty x :: List.map pretty xs) &lt;|&gt; (* the horizontal style *)
+ vcat (pretty x :: List.map pretty xs) &lt;|&gt; (* the vertical style *)
+ (pretty x &lt;+&gt; space &lt;+&gt; vcat List.map pretty xs)) &lt;+&gt; (* the argument list style *)
+rparen</code></pre><h3 id="complimit"><a href="#complimit" class="anchor"></a>The Computation Width Limit</h3><p>Unlike other pretty printers, <a href="Pretty_expressive/index.html"><code>Pretty_expressive</code></a> needs an additional parameter: the <i>computation width limit</i>. Regular users should not need to concern much with this parameter (<a href="Pretty_expressive/Printer/index.html#val-default_cost_factory"><code>default_cost_factory</code></a> will already provide a sensible value for the parameter), but advanced users who need a fine-grained control may want to adjust this parameter.</p><p>The parameter is used by the pretty printer to bound the computation. On the flip side, the pretty printer is only guaranteed to return an optimal layout among layout printings that do not <i>exceed</i> the parameter. As a result, if the parameter is too high, the performance could be negatively impacted, but if the parameter is too low, the output layout quality could be negatively impacted.</p><p><a href="Pretty_expressive/index.html"><code>Pretty_expressive</code></a> employs various heuristics to make the output layout pretty even when the computation width limit is exceeded, however. In most applications, the value of <code class="odoc-katex-math">1.2 \times w</code> should suffice, where <code class="odoc-katex-math">w</code> is the page width limit.</p><h4 id="technical-notes"><a href="#technical-notes" class="anchor"></a>Technical Notes</h4><p>A layout printing <i>exceeds</i> the computation width limit when either the column position or indentation level exceeds the limit. For example:</p><pre class="language-ocaml"><code>text &quot;Racket&quot;</code></pre><p>exceeds the computation width limit of 5, since there are 6 characters in a line. Similarly:</p><pre class="language-ocaml"><code>nest 6 (text &quot;Rack&quot;)</code></pre><p>exceeds the computation width limit of 5, since the indentation level exceeds 5 (even though this indentation level is completely unused).</p><p>When all possible layout printing due to a document exceeds the computation width limit, <a href="Pretty_expressive/index.html"><code>Pretty_expressive</code></a> will still output a layout, with no guarantee that the layout is optimal. In such case, we say that the output layout is <i>tainted</i>. The <a href="Pretty_expressive/Util/index.html#type-info"><code>info</code></a> record and the <a href="Pretty_expressive/Signature/module-type-PrinterT/index.html#val-print"><code>print</code></a> function can be used to find if the output layout is tainted or not.</p><h3 id="factory"><a href="#factory" class="anchor"></a>Cost Factory</h3><p>Pretty printers choose an optimal layout from a document by minimizing an <i>optimality objective</i>. Unlike other pretty printers, which have built-in optimality objectives, <a href="Pretty_expressive/index.html"><code>Pretty_expressive</code></a> allows users to customize an optimality objective via the <i>cost factory</i>.</p><p>The cost factory interface is given in <a href="Pretty_expressive/Signature/module-type-CostFactory/index.html"><code>CostFactory</code></a>. A valid cost factory must also satisfy the interface, as well as various contracts specified in the documentation of <a href="Pretty_expressive/Signature/module-type-CostFactory/index.html"><code>CostFactory</code></a>. These contracts ensure that the concept of a cost for a layout is well-defined, and make it possible to efficiently find a layout with minimal cost.</p><p>See <a href="Pretty_expressive/Printer/index.html#val-default_cost_factory"><code>default_cost_factory</code></a> for an example of a cost factory.</p><h4 id="custom-cost-factory"><a href="#custom-cost-factory" class="anchor"></a>Custom Cost Factory</h4><p>Consider the example in <a href="#bestpractice">Best Practice for Document Construction</a>. Each list node can be rendered with three possible styles: the horizontal style, the vertical style, and the argument list style.</p><pre class="language-ocaml"><code># let example_sexp =
+    List [Atom &quot;abc&quot;; Atom &quot;def&quot;; List [Atom &quot;ghi&quot;; Atom &quot;jkl&quot;; Atom &quot;mno&quot;]];;
+val example_sexp : sexp =
+  List [Atom &quot;abc&quot;; Atom &quot;def&quot;; List [Atom &quot;ghi&quot;; Atom &quot;jkl&quot;; Atom &quot;mno&quot;]]
+# print_sexp example_sexp 15 |&gt; print_endline;;
+(abc
+ def
+ (ghi jkl mno))
+- : unit = ()</code></pre><p>Indeed, this is an optimal layout according to <a href="Pretty_expressive/Printer/index.html#val-default_cost_factory"><code>default_cost_factory</code></a>, because it does not have any badness, and two newlines are minimal.</p><p>However, let’s say that we consider the vertical style to be not as pretty. The vertical style should still be a possibility however, since it can help us avoid going over the page width limit and minimize the number of newlines in many situations. We simply would prefer other styles when all else is equal. In this case, we would prefer the output:</p><pre>(abc def
+     (ghi jkl
+          mno))</pre><p>To address this issue, we construct a new cost factory that is similar to <a href="Pretty_expressive/Printer/index.html#val-default_cost_factory"><code>default_cost_factory</code></a>, but with an extra component: the <i>style cost</i>.</p><pre class="language-ocaml"><code>let my_cost_factory ~page_width ?computation_width () =
+  (module struct
+    type t = int * int * int
+    let limit = match computation_width with
+      | None -&gt; (float_of_int page_width) *. 1.2 |&gt; int_of_float
+      | Some computation_width -&gt; computation_width
+
+    let text pos len =
+      let stop = pos + len in
+      if stop &gt; page_width then
+        let maxwc = max page_width pos in
+        let a = maxwc - page_width in
+        let b = stop - maxwc in
+        (b * (2*a + b), 0, 0)
+      else
+        (0, 0, 0)
+
+    let newline _ = (0, 1, 0)
+
+    let combine (o1, h1, s1) (o2, h2, s2) =
+      (o1 + o2, h1 + h2, s1 + s2)
+
+    let le (o1, h1, s1) (o2, h2, s2) =
+      if o1 = o2 then
+        if h1 = h2 then s1 &lt;= s2
+        else h1 &lt; h2
+      else o1 &lt; o2
+
+    let debug (o, h, s) = Printf.sprintf &quot;(%d %d %d)&quot; o h s
+
+  end: Signature.CostFactory with type t = int * int * int)</code></pre><p>We now construct a function to convert an S-expression into a document, and utilize the <a href="Pretty_expressive/Signature/module-type-PrinterT/index.html#val-cost"><code>cost</code></a> construct to add a style cost to the vertical style document, thus discouraging it.</p><pre class="language-ocaml"><code>let revised_print_sexp (s : sexp) (w : int) =
+  let cf = my_cost_factory ~page_width:w () in
+  let module P = Printer.Make (val cf) in
+  let open P in
+
+  let acat = fold_doc (fun x y -&gt; x &lt;+&gt; space &lt;+&gt; y) in
+
+  let rec pretty (s : sexp) =
+    match s with
+    | Atom s -&gt; text s
+    | List [] -&gt; lparen &lt;+&gt; rparen
+    | List [x] -&gt; lparen &lt;+&gt; pretty x &lt;+&gt; rparen
+    | List (x :: xs) -&gt;
+      let x_d = pretty x in
+      let xs_d = List.map pretty xs in
+      lparen &lt;+&gt;
+      (acat (x_d :: xs_d) &lt;|&gt; (* the horizontal style *)
+       (cost (0, 0, 1) (vcat (x_d :: xs_d))) &lt;|&gt; (* the vertical style -- penalized *)
+       (x_d &lt;+&gt; space &lt;+&gt; vcat xs_d)) &lt;+&gt; (* the argument list style *)
+      rparen
+  in
+  pretty_print (pretty s)</code></pre><p>Now we can pretty print as we desired:</p><pre class="language-ocaml"><code># revised_print_sexp example_sexp 15 |&gt; print_endline;;
+(abc def
+     (ghi jkl
+          mno))
+- : unit = ()</code></pre><p>This does not mean that the vertical style won't ever be used, however. It is simply discouraged. With an even lower page width limit, the vertical style is the only way to avoid overflow, so it is employed.</p><pre class="language-ocaml"><code># revised_print_sexp example_sexp 10 |&gt; print_endline;;
+(abc
+ def
+ (ghi
+  jkl
+  mno))
+- : unit = ()</code></pre></div></body></html>
