@@ -211,8 +211,8 @@ EOF
   val cost : cost -> doc -> doc
   (** [cost c d] is a document that artificially adds cost [c] to [d].
 
-      In the below example, we artificially adds overflow to [text "Chrono Trigger"],
-      making it a non-optimal choice, even though [text "Chrono Trigger"] would have
+      In the below example, we artificially adds overflow to [text "CrossCode"],
+      making it a non-optimal choice, even though [text "CrossCode"] would have
       been the optimal choice had [cost] not been used.
 
       {5 Examples:}
