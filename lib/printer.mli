@@ -1,8 +1,7 @@
 (** This module provides a pretty expressive printer. *)
 
 module Make(C : Signature.CostFactory): (Signature.PrinterT with type cost = C.t)
-(** The pretty printer and doc combinators, parameterized by a cost factory.
-    See {!Signature.PrinterT} for details. *)
+(** The pretty printer and document combinators, parameterized by a cost factory. *)
 
 val default_cost_factory : page_width:int -> ?computation_width:int -> unit ->
                            (module Signature.CostFactory with type t = int * int)

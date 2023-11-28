@@ -6,8 +6,8 @@ The pretty printer is expressive, provably optimal, and practically efficient.
 {1 Getting Started}
 
 General-purpose pretty printing is a process that produces human readable text from structured data.
-Users encode the structured data together with styling choices in an abstract {i document} {{!Pretty_expressive.Signature.PrinterT.doc} [doc]}. This document contains printing instructions: things like text, newlines, and indentation.
-It can also contain {i choices} ({{!Pretty_expressive.Signature.PrinterT.(<|>)}[<|>]}) between two or more alternatives, resulting in many possible layouts for a document.
+Users encode the structured data together with styling choices in an abstract {i document} {{!Pretty_expressive.Printer.Make.doc} [doc]}. This document contains printing instructions: things like text, newlines, and indentation.
+It can also contain {i choices} ({{!Pretty_expressive.Printer.Make.(<|>)}[<|>]}) between two or more alternatives, resulting in many possible layouts for a document.
 {!Pretty_expressive}’s job is to pick a prettiest layout (according to a specified optimality objective)
 from among all of the choices.
 E.g., the one that minimizes the number of lines while not exceeding the page width limit.
@@ -39,12 +39,12 @@ There is a lot of code above, so let's unpack it.
 
 In the above code, [let d = text "while (true) {" <> ....] defines a document [d].
 
-{ul {- {{!Pretty_expressive.Signature.PrinterT.text}[text]} prints a string.}
-    {- {{!Pretty_expressive.Signature.PrinterT.(<>)}[<>]} prints a concatenation of two documents.}
-    {- {{!Pretty_expressive.Signature.PrinterT.nl}[nl]} prints a newline.}
-    {- {{!Pretty_expressive.Signature.PrinterT.nest}[nest]} adds indentation level so that
-       {{!Pretty_expressive.Signature.PrinterT.nl}[nl]} adds indentation spaces.}
-    {- {{!Pretty_expressive.Signature.PrinterT.(<|>)}[<|>]} creates a choice.}}
+{ul {- {{!Pretty_expressive.Printer.Make.text}[text]} prints a string.}
+    {- {{!Pretty_expressive.Printer.Make.(<>)}[<>]} prints a concatenation of two documents.}
+    {- {{!Pretty_expressive.Printer.Make.nl}[nl]} prints a newline.}
+    {- {{!Pretty_expressive.Printer.Make.nest}[nest]} adds indentation level so that
+       {{!Pretty_expressive.Printer.Make.nl}[nl]} adds indentation spaces.}
+    {- {{!Pretty_expressive.Printer.Make.(<|>)}[<|>]} creates a choice.}}
 
 As a result, the above document [d] encodes two possible layouts:
 
@@ -83,7 +83,7 @@ It is a functor that consumes a {{!Pretty_expressive.Signature.CostFactory} [Cos
 Here, [let module P = Printer.Make (val cf)] creates a pretty printer [P]
 with the above cost factory.
 
-We then [let open P] so that combinators like {{!Pretty_expressive.Signature.PrinterT.text}[text]}, {{!Pretty_expressive.Signature.PrinterT.(<>)}[<>]}, and the pretty printing function {{!Pretty_expressive.Signature.PrinterT.pretty_print}[pretty_print]}
+We then [let open P] so that combinators like {{!Pretty_expressive.Printer.Make.text}[text]}, {{!Pretty_expressive.Printer.Make.(<>)}[<>]}, and the pretty printing function {{!Pretty_expressive.Printer.Make.pretty_print}[pretty_print]}
 are in scope.
 
 {2 Putting them all together}
@@ -137,11 +137,11 @@ For example, another way to construct a document for the above example could be:
           nl <> text "}"
 ]}
 
-Here, the {{!Pretty_expressive.Signature.PrinterT.group}[group]} combinator is used.
-It creates a choice: whether to collapse {{!Pretty_expressive.Signature.PrinterT.nl}[nl]}
+Here, the {{!Pretty_expressive.Printer.Make.group}[group]} combinator is used.
+It creates a choice: whether to collapse {{!Pretty_expressive.Printer.Make.nl}[nl]}
 to a single space or not.
 
-See {!Pretty_expressive.Signature.PrinterT} for the full list of combinators that we provide.
+See {!Pretty_expressive.Printer.Make} for the full list of combinators that we provide.
 Since combinators are simply regular functions, users may also compose the existing combinators together
 to create new user-defined combinators.
 
@@ -156,7 +156,7 @@ The full design consideration of {!Pretty_expressive} can be found in {{: https:
 
 {2:bestpractice Best Practice for Document Construction}
 
-While we can put arbitrary sub-documents as the operands of the choice combinator {{!Pretty_expressive.Signature.PrinterT.(<|>)}[<|>]},
+While we can put arbitrary sub-documents as the operands of the choice combinator {{!Pretty_expressive.Printer.Make.(<|>)}[<|>]},
 we should {i share} sub-documents across choices.
 This matters because the performance of {!Pretty_expressive} depends on the {i DAG size} of the input document.
 Without sharing, the input document would get unfolded into a tree, whose size could be exponentially large
@@ -263,7 +263,7 @@ exceeds the computation width limit of 5, since the indentation level exceeds 5 
 
 When all possible layout printing due to a document exceeds the computation width limit,
 {!Pretty_expressive} will still output a layout, with no guarantee that the layout is optimal.
-In such case, we say that the output layout is {i tainted}. The {{!Pretty_expressive.Util.info}[info]} record and the {{!Pretty_expressive.Signature.PrinterT.print}[print]} function can be used to find if the output layout is tainted or not.
+In such case, we say that the output layout is {i tainted}. The {{!Pretty_expressive.Util.info}[info]} record and the {{!Pretty_expressive.Printer.Make.print}[print]} function can be used to find if the output layout is tainted or not.
 
 {2:factory Cost Factory}
 
@@ -350,7 +350,7 @@ let my_cost_factory ~page_width ?computation_width () =
 ]}
 
 We now construct a function to convert an S-expression into a document,
-and utilize the {{!Pretty_expressive.Signature.PrinterT.val-cost}[cost]} construct
+and utilize the {{!Pretty_expressive.Printer.Make.val-cost}[cost]} construct
 to add a style cost to the vertical style document, thus discouraging it.
 
 {[
