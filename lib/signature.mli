@@ -44,8 +44,9 @@ end
 
 module type PrinterT =
 sig
-  (** A pretty expressive printer. The rest of this section assumes that
-      the program begins with
+  (** The pretty expressive printer inferface.
+
+      Examples in the rest of this section assume that the program begins with
 
       {[
       open Pretty_expressive

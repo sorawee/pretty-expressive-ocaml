@@ -12,7 +12,7 @@ It can also contain {i choices} ({{!Pretty_expressive.Signature.PrinterT.(<|>)}[
 from among all of the choices.
 E.g., the one that minimizes the number of lines while not exceeding the page width limit.
 
-Here’s a simple example of pretty printing a document encoding a fragment of code.
+Here’s a simple example that pretty prints a document encoding a fragment of code.
 
 {[
 open Pretty_expressive
@@ -277,7 +277,8 @@ the documentation of {{!Pretty_expressive.Signature.CostFactory}[CostFactory]}.
 These contracts ensure that the concept of a cost for a layout is well-defined,
 and make it possible to efficiently find a layout with minimal cost.
 
-See {{!Pretty_expressive.Printer.default_cost_factory}[default_cost_factory]} for an example of a cost factory.
+See {{!Pretty_expressive.Printer.default_cost_factory}[default_cost_factory]} and
+{{: https://dl.acm.org/doi/abs/10.1145/3622837 }the paper} for examples of cost factories.
 
 {3 Custom Cost Factory}
 
@@ -296,8 +297,8 @@ val example_sexp : sexp =
 - : unit = ()
 ]}
 
-Indeed, this is an optimal layout according to {{!Pretty_expressive.Printer.default_cost_factory}[default_cost_factory]},
-because it does not have any badness, and two newlines are minimal.
+Indeed, this is an optimal layout according to {{!Pretty_expressive.Printer.default_cost_factory}[default_cost_factory]}
+(though not {i the only} optimal layout), because it does not have any badness, and two newlines are minimal.
 
 However, let’s say that we consider the vertical style to be not as pretty.
 The vertical style should still be a possibility however,
