@@ -104,7 +104,7 @@ Portal
     let module P = Printer.Make (val cf) in
     let open P in
     pretty_print (text "Chrono Trigger" <|>
-                 (text "Octopath" <> nl <> text "Traveler")) |> print_endline;;
+                 (text "Octopath" ^^ nl ^^ text "Traveler")) |> print_endline;;
 val print_doc : int -> unit = <fun>
 # print_doc 10;;
 Octopath
@@ -119,18 +119,26 @@ Chrono Trigger
 
   (** {2 Concatenation document} *)
 
-  val (<>) : doc -> doc -> doc
-  (** [a <> b] is a document for concatenation of documents [a] and [b]
-      {i without} alignment. It's also known as the {i unaligned concatenation},
+  val (^^) : doc -> doc -> doc
+  (** [a ^^ b] is a document for concatenation of documents [a] and [b]
+      {i without} alignment.
+      In {{: https://dl.acm.org/doi/abs/10.1145/3622837 }the paper},
+      the symbol [<>] is used for the operator.
+      We use [^^] in the OCaml implementation instead to avoid shadowing
+      the built-in not equal operator.
+      This operator also known as the {i unaligned concatenation},
       which is widely used in traditional pretty printers.
+
+      See also {!Printer.MakeCompat} for a functor that provides this operator
+      under the symbol [<>].
 
       {5 Examples:}
       {[
-# let left_doc = text "Splatoon" <> nl <> text "Nier";;
+# let left_doc = text "Splatoon" ^^ nl ^^ text "Nier";;
 val left_doc : doc = <abstr>
-# let right_doc = text "Automata" <> nl <> text "FEZ";;
+# let right_doc = text "Automata" ^^ nl ^^ text "FEZ";;
 val right_doc : doc = <abstr>
-# pretty_print (left_doc <> right_doc) |> print_endline;;
+# pretty_print (left_doc ^^ right_doc) |> print_endline;;
 Splatoon
 NierAutomata
 FEZ
@@ -150,7 +158,7 @@ FEZ
 
       {5 Examples:}
       {[
-# pretty_print (left_doc <> align right_doc) |> print_endline;;
+# pretty_print (left_doc ^^ align right_doc) |> print_endline;;
 Splatoon
 NierAutomata
     FEZ
@@ -158,7 +166,7 @@ NierAutomata
       ]}
 
       The aligned concatenation operator {!(<+>)} is a derived combinator that
-      composes {!(<>)} and [align] together. It is especially useful for
+      composes {!(^^)} and [align] together. It is especially useful for
       languages that uses the the box model for code styling. *)
 
   val nest : int -> doc -> doc
@@ -167,7 +175,7 @@ NierAutomata
 
       {5 Examples:}
       {[
-# pretty_print (text "when 1 = 2:" <> nest 4 (nl <> text "print 'oh no!'"))
+# pretty_print (text "when 1 = 2:" ^^ nest 4 (nl ^^ text "print 'oh no!'"))
   |> print_endline;;
 when 1 = 2:
     print 'oh no!'
@@ -178,7 +186,7 @@ when 1 = 2:
       In the following example, [when 1 = 2:] is not further indented.
 
       {[
-# pretty_print (nest 4 (text "when 1 = 2:" <> nl <> text "print 'oh no!'"))
+# pretty_print (nest 4 (text "when 1 = 2:" ^^ nl ^^ text "print 'oh no!'"))
   |> print_endline;;
 when 1 = 2:
     print 'oh no!'
@@ -192,12 +200,12 @@ when 1 = 2:
 
       {5 Examples:}
       {[
-# let s_d = reset (text "#<<EOF" <> nl <>
-                   text "Zelda" <> nl <>
-                   text "Baba is you" <> nl <>
+# let s_d = reset (text "#<<EOF" ^^ nl ^^
+                   text "Zelda" ^^ nl ^^
+                   text "Baba is you" ^^ nl ^^
                    text "EOF");;
 val s_d : doc = <abstr>
-# pretty_print (text "when 1 = 2:" <> nest 4 (nl <> text "print " <> s_d))
+# pretty_print (text "when 1 = 2:" ^^ nest 4 (nl ^^ text "print " ^^ s_d))
   |> print_endline;;
 when 1 = 2:
     print #<<EOF
@@ -219,12 +227,12 @@ EOF
       {5 Examples:}
       {[
 # pretty_print (cost (1, 0) (text "CrossCode") <|>
-                (text "Final" <> nl <> text "Fantasy")) |> print_endline;;
+                (text "Final" ^^ nl ^^ text "Fantasy")) |> print_endline;;
 Final
 Fantasy
 - : unit = ()
 # pretty_print (text "CrossCode" <|>
-                (text "Final" <> nl <> text "Fantasy")) |> print_endline;;
+                (text "Final" ^^ nl ^^ text "Fantasy")) |> print_endline;;
 CrossCode
 - : unit = ()
       ]}
@@ -241,9 +249,9 @@ CrossCode
 
       {5 Examples:}
       {[
-# pretty_print (text "Sea of Stars" <> fail) |> print_endline;;
+# pretty_print (text "Sea of Stars" ^^ fail) |> print_endline;;
 Exception: Failure "fails to render".
-# pretty_print ((text "Sea of Stars" <> fail) <|> text "Hades") |> print_endline;;
+# pretty_print ((text "Sea of Stars" ^^ fail) <|> text "Hades") |> print_endline;;
 Hades
 - : unit = ()
       ]} *)
@@ -263,8 +271,8 @@ Hades
       {5 Examples:}
       {[
 # print_string "Languages: ";
-  pretty_print (align (text "Racket" <> nl <>
-                       text "OCaml" <> nl <>
+  pretty_print (align (text "Racket" ^^ nl ^^
+                       text "OCaml" ^^ nl ^^
                        text "Pyret")) |> print_endline;;
 Languages: Racket
 OCaml
@@ -272,8 +280,8 @@ Pyret
 - : unit = ()
 # print_string "Languages: ";
   pretty_print ~init_c:11
-               (align (text "Racket" <> nl <>
-                       text "OCaml" <> nl <>
+               (align (text "Racket" ^^ nl ^^
+                       text "OCaml" ^^ nl ^^
                        text "Pyret")) |> print_endline;;
 Languages: Racket
            OCaml
@@ -289,19 +297,19 @@ Languages: Racket
 
       {5 Examples:}
       {[
-# pretty_print (flatten (text "Fire Emblem" <> nl <> text "Awakening"))
+# pretty_print (flatten (text "Fire Emblem" ^^ nl ^^ text "Awakening"))
   |> print_endline;;
 Fire Emblem Awakening
 - : unit = ()
-# pretty_print (flatten (text "Mario + Rabbids" <> break <> text "Kingdom Battle"))
+# pretty_print (flatten (text "Mario + Rabbids" ^^ break ^^ text "Kingdom Battle"))
   |> print_endline;;
 Mario + RabbidsKingdom Battle
 - : unit = ()
-# pretty_print (flatten (text "XCOM 2" <> hard_nl <> text "War of the Chosen"))
+# pretty_print (flatten (text "XCOM 2" ^^ hard_nl ^^ text "War of the Chosen"))
   |> print_endline;;
 Exception: Failure "fails to render".
-# pretty_print (flatten (text "Tactics Ogre" <>
-                         newline (Some ": ") <>
+# pretty_print (flatten (text "Tactics Ogre" ^^
+                         newline (Some ": ") ^^
                          text "Reborn"))
   |> print_endline;;
 Tactics Ogre: Reborn
@@ -313,11 +321,11 @@ Tactics Ogre: Reborn
       This combinator is a part of most traditional pretty printers. *)
 
   val (<+>) : doc -> doc -> doc
-  (** [a <+> b] is a shorthand for [a <> align b].
+  (** [a <+> b] is a shorthand for [a ^^ align b].
       It is also known as the {i aligned concatenation}. *)
 
   val (<$>) : doc -> doc -> doc
-  (** [a <$> b] is a shorthand for [a <> hard_nl <> b]. *)
+  (** [a <$> b] is a shorthand for [a ^^ hard_nl ^^ b]. *)
 
   val (<->) : doc -> doc -> doc
   (** [a <-> b] is a shorthand for [flatten a <+> b].
@@ -366,4 +374,14 @@ Tactics Ogre: Reborn
 
   val dquote : doc
   (** Equivalent to [text "\""] *)
+end
+
+
+module type PrinterCompatT =
+sig
+  include PrinterT
+  (** @closed *)
+
+  val (<>) : doc -> doc -> doc
+  (** [<>] is the same as {!(^^)} *)
 end

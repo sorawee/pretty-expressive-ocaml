@@ -84,14 +84,14 @@ module Core (C : Signature.CostFactory) = struct
         nl_cnt = d.nl_cnt;
         table = init_table memo_w }
 
-  let rec (<>) (d1 : doc) (d2 : doc) =
+  let rec (^^) (d1 : doc) (d2 : doc) =
     match (d1.dc, d2.dc) with
     | (Fail, _) | (_, Fail) -> fail
     | (Text (_, 0), _) -> d2
     | (_, Text (_, 0)) -> d1
     | (Text (s1, l1), Text (s2, l2)) -> make_text (Cons (s1, s2)) (l1 + l2)
-    | (_, Cost (c, d2)) -> cost c (d1 <> d2)
-    | (Cost (c, d1), _) -> cost c (d1 <> d2)
+    | (_, Cost (c, d2)) -> cost c (d1 ^^ d2)
+    | (Cost (c, d1), _) -> cost c (d1 ^^ d2)
     | _ ->
       let memo_w = min (calc_weight d1) (calc_weight d2) in
       { dc = Concat (d1, d2);
@@ -304,7 +304,7 @@ module Make (C : Signature.CostFactory): (Signature.PrinterT with type cost = C.
           | Concat (({ id = a_id; _ } as a), ({ id = b_id; _ } as b)) ->
             let { id = a_idp; _ } as ap = flatten a in
             let { id = b_idp; _ } as bp = flatten b in
-            if a_idp = a_id && b_idp = b_id then d else ap <> bp
+            if a_idp = a_id && b_idp = b_id then d else ap ^^ bp
           | Choice (({ id = a_id; _ } as a), ({ id = b_id; _ } as b)) ->
             let { id = a_idp; _ } as ap = flatten a in
             let { id = b_idp; _ } as bp = flatten b in
@@ -318,8 +318,8 @@ module Make (C : Signature.CostFactory): (Signature.PrinterT with type cost = C.
         out
     in flatten
 
-  let (<+>) d1 d2 = d1 <> align d2
-  let (<$>) d1 d2 = d1 <> hard_nl <> d2
+  let (<+>) d1 d2 = d1 ^^ align d2
+  let (<$>) d1 d2 = d1 ^^ hard_nl ^^ d2
   let group d = d <|> (flatten d)
 
   let (<->) x y = (flatten x) <+> y
@@ -332,6 +332,13 @@ module Make (C : Signature.CostFactory): (Signature.PrinterT with type cost = C.
   let hcat = fold_doc (<->)
   let vcat = fold_doc (<$>)
 
+end
+
+
+module MakeCompat (C : Signature.CostFactory): (Signature.PrinterCompatT with type cost = C.t) = struct
+  include Make (C)
+
+  let (<>) = (^^)
 end
 
 let default_cost_factory ~page_width ?computation_width () =

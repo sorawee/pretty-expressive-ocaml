@@ -3,6 +3,11 @@
 module Make(C : Signature.CostFactory): (Signature.PrinterT with type cost = C.t)
 (** The pretty printer and document combinators, parameterized by a cost factory. *)
 
+module MakeCompat(C : Signature.CostFactory): (Signature.PrinterCompatT with type cost = C.t)
+(** This functor is similar to {!Make}, but it provides operators
+    that are compatible with the paper.
+    {b Using [open] on it will shadow built-in identifiers.} *)
+
 val default_cost_factory : page_width:int -> ?computation_width:int -> unit ->
                            (module Signature.CostFactory with type t = int * int)
 (** The default cost factory, parameterized by the page width limit [page_width],

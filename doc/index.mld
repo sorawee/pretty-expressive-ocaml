@@ -23,12 +23,12 @@ let print_doc (w : int): unit =
   let module P = Printer.Make (val cf) in
   let open P in
 
-  let d = text "while (true) {" <>
+  let d = text "while (true) {" ^^
           nest 4
-            (nl <> text "f();" <> nl <> text "if (done())" <>
+            (nl ^^ text "f();" ^^ nl ^^ text "if (done())" ^^
              (let exit_d = text "exit();" in
-              (space <> exit_d) <|> nest 4 (nl <> exit_d))) <>
-          nl <> text "}"
+              (space ^^ exit_d) <|> nest 4 (nl ^^ exit_d))) ^^
+          nl ^^ text "}"
   in
   pretty_print d
 ]}
@@ -37,10 +37,10 @@ There is a lot of code above, so let's unpack it.
 
 {2 Document Construction}
 
-In the above code, [let d = text "while (true) {" <> ....] defines a document [d].
+In the above code, [let d = text "while (true) {" ^^ ....] defines a document [d].
 
 {ul {- {{!Pretty_expressive.Printer.Make.text}[text]} prints a string.}
-    {- {{!Pretty_expressive.Printer.Make.(<>)}[<>]} prints a concatenation of two documents.}
+    {- {{!Pretty_expressive.Printer.Make.(^^)}[^^]} prints a concatenation of two documents.}
     {- {{!Pretty_expressive.Printer.Make.nl}[nl]} prints a newline.}
     {- {{!Pretty_expressive.Printer.Make.nest}[nest]} adds indentation level so that
        {{!Pretty_expressive.Printer.Make.nl}[nl]} adds indentation spaces.}
@@ -83,7 +83,7 @@ It is a functor that consumes a {{!Pretty_expressive.Signature.CostFactory} [Cos
 Here, [let module P = Printer.Make (val cf)] creates a pretty printer [P]
 with the above cost factory.
 
-We then [let open P] so that combinators like {{!Pretty_expressive.Printer.Make.text}[text]}, {{!Pretty_expressive.Printer.Make.(<>)}[<>]}, and the pretty printing function {{!Pretty_expressive.Printer.Make.pretty_print}[pretty_print]}
+We then [let open P] so that combinators like {{!Pretty_expressive.Printer.Make.text}[text]}, {{!Pretty_expressive.Printer.Make.(^^)}[^^]}, and the pretty printing function {{!Pretty_expressive.Printer.Make.pretty_print}[pretty_print]}
 are in scope.
 
 {2 Putting them all together}
@@ -130,11 +130,11 @@ Some may be easier than the other.
 For example, another way to construct a document for the above example could be:
 
 {[
-  let d = text "while (true) {" <>
+  let d = text "while (true) {" ^^
           nest 4
-            (nl <> text "f();" <> nl <> text "if (done())" <>
-             group (nest 4 (nl <> text "exit();"))) <>
-          nl <> text "}"
+            (nl ^^ text "f();" ^^ nl ^^ text "if (done())" ^^
+             group (nest 4 (nl ^^ text "exit();"))) ^^
+          nl ^^ text "}"
 ]}
 
 Here, the {{!Pretty_expressive.Printer.Make.group}[group]} combinator is used.
