@@ -44,9 +44,14 @@ end
 
 module type PrinterT =
 sig
-  (** The pretty expressive printer inferface.
 
-      Examples in the rest of this section assume that the program begins with
+  type doc
+  (** The [doc] type *)
+
+  type cost
+  (** The [cost] type *)
+
+  (** Examples in the rest of this section assume that the program begins with
 
       {[
       open Pretty_expressive
@@ -54,14 +59,8 @@ sig
       let cf = Printer.default_cost_factory ~page_width:10 ()
       module P = Printer.Make (val cf)
       open P
-      ]}
- *)
+      ]} *)
 
-  type doc
-  (** The [doc] type *)
-
-  type cost
-  (** The [cost] type *)
 
   (** {2 Text document} *)
 
@@ -92,30 +91,6 @@ Portal
 
   val hard_nl : doc
   (** [hard_nl] is a document for a newline that {!fail}s to {!flatten}. *)
-
-  (** {2 Choice document} *)
-
-  val (<|>) : doc -> doc -> doc
-  (** [a <|> b] is a document for a choice between document [a] and [b].
-
-      {[
-# let print_doc w =
-    let cf = Printer.default_cost_factory ~page_width:w () in
-    let module P = Printer.Make (val cf) in
-    let open P in
-    pretty_print (text "Chrono Trigger" <|>
-                 (text "Octopath" ^^ nl ^^ text "Traveler")) |> print_endline;;
-val print_doc : int -> unit = <fun>
-# print_doc 10;;
-Octopath
-Traveler
-- : unit = ()
-# print_doc 15;;
-Chrono Trigger
-- : unit = ()
-      ]}
-
-      See also {{!page-index.bestpractice}Best Practice for Document Construction} *)
 
   (** {2 Concatenation document} *)
 
@@ -150,6 +125,30 @@ FEZ
       C-like languages, whose array expression, function call, and curly braces
       should not be rigid.
  *)
+
+  (** {2 Choice document} *)
+
+  val (<|>) : doc -> doc -> doc
+  (** [a <|> b] is a document for a choice between document [a] and [b].
+
+      {[
+# let print_doc w =
+    let cf = Printer.default_cost_factory ~page_width:w () in
+    let module P = Printer.Make (val cf) in
+    let open P in
+    pretty_print (text "Chrono Trigger" <|>
+                 (text "Octopath" ^^ nl ^^ text "Traveler")) |> print_endline;;
+val print_doc : int -> unit = <fun>
+# print_doc 10;;
+Octopath
+Traveler
+- : unit = ()
+# print_doc 15;;
+Chrono Trigger
+- : unit = ()
+      ]}
+
+      See also {{!page-index.bestpractice}Best Practice for Document Construction} *)
 
   (** {2 Indentation documents} *)
 
