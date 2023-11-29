@@ -3,7 +3,7 @@
 This library implements a pretty expressive printer, following the algorithm presented in {{: https://dl.acm.org/doi/abs/10.1145/3622837 }A Pretty Expressive Printer (OOPSLA'23)}.
 The pretty printer is expressive, provably optimal, and practically efficient.
 
-{1 Quick Start}
+{1 Getting Started}
 
 {[
 open Pretty_expressive
@@ -14,12 +14,15 @@ open P
 ]}
 
 {[
-# pretty_print (text "Hello" ^^ text " World!") |> print_endline;;
-Hello World!
-- : unit = ()
+# pretty_print (text "Hello" ^^ text " World!");;
+- : string = "Hello World!"
 ]}
 
-{1 A Tour of Pretty Expressive}
+{1 API Reference}
+
+See the documentation for the module {!pretty_expressive}.
+
+{1 Pretty Expressive Guide}
 
 General-purpose pretty printing is a process that produces human readable text from structured data.
 Users encode the structured data together with styling choices in an abstract {i document} {{!Pretty_expressive.Printer.Make.doc} [doc]}. This document contains printing instructions: things like text, newlines, and indentation.
@@ -118,8 +121,9 @@ while (true) {
 - : unit = ()
 ]}
 
-It outputs the above layout because the layout fits the page width limit, while having fewer lines.
-By contrast, with the page width limit of 20:
+It outputs the first layout because the layout fits the page width limit, while having fewer lines
+compared to the second layout. By contrast, with the page width limit of 20,
+the second layout is now chosen.
 
 {[
 # print_doc 20 |> print_endline
@@ -131,8 +135,8 @@ while (true) {
 - : unit = ()
 ]}
 
-It outputs the above layout because the other layout does not fit the page width limit,
-leaving this output layout as the only option.
+This is because the first layout does not fit the page width limit,
+leaving the second layout as the only option.
 
 {2 Alternative Document Construction}
 
@@ -157,9 +161,6 @@ See {{!Pretty_expressive.Printer.Make}[Printer.Make]} for the full list of combi
 Since combinators are simply regular functions, users may also compose the existing combinators together
 to create new user-defined combinators.
 
-{1 API Reference}
-
-See the documentation for the module {!pretty_expressive}.
 
 {1 Explainers}
 

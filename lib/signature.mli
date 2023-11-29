@@ -16,7 +16,8 @@ sig
 
       See {{!Printer.default_cost_factory}[default_cost_factory]},
       {{!page-index.factory}the cost factory section},
-      and the paper for examples of cost factories. *)
+      and {{: https://dl.acm.org/doi/abs/10.1145/3622837 }the paper}
+      for examples of cost factories. *)
 
   type t
   (** A type for cost *)
@@ -97,8 +98,7 @@ Portal
   val (^^) : doc -> doc -> doc
   (** [a ^^ b] is a document for concatenation of documents [a] and [b]
       {i without} alignment.
-      In {{: https://dl.acm.org/doi/abs/10.1145/3622837 }the paper},
-      the symbol [<>] is used for the operator.
+      In the paper, the symbol [<>] is used for the operator.
       We use [^^] in the OCaml implementation instead to avoid shadowing
       the built-in not equal operator.
       This operator also known as the {i unaligned concatenation},
