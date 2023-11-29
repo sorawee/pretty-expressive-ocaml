@@ -109,15 +109,16 @@ Portal
 
       {5 Examples:}
       {[
-# let left_doc = text "Splatoon" ^^ nl ^^ text "Nier";;
-val left_doc : doc = <abstr>
-# let right_doc = text "Automata" ^^ nl ^^ text "FEZ";;
-val right_doc : doc = <abstr>
-# pretty_print (left_doc ^^ right_doc) |> print_endline;;
-Splatoon
-NierAutomata
-FEZ
-- : unit = ()
+      let left_doc = text "Splatoon" ^^ nl ^^ text "Nier";;
+      let right_doc = text "Automata" ^^ nl ^^ text "FEZ";;
+      ]}
+
+      {[
+      # pretty_print (left_doc ^^ right_doc) |> print_endline;;
+      Splatoon
+      NierAutomata
+      FEZ
+      - : unit = ()
       ]}
 
       By "without alignment," we mean that the right document is not treated as

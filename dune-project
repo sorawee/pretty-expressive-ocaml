@@ -15,10 +15,13 @@
 
 (documentation https://sorawee.github.io/pretty-expressive-ocaml/)
 
+(using mdx 0.2)
+
 (package
  (name pretty_expressive)
  (synopsis "A pretty expressive printer")
  (description "A pretty printer implementation of 'A Pretty Expressive Printer' (OOPSLA'23), with an emphasis on expressiveness and optimality.")
  (depends (ocaml (>= 4.05))
           dune
+          mdx
           (alcotest :with-test)))

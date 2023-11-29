@@ -3,7 +3,23 @@
 This library implements a pretty expressive printer, following the algorithm presented in {{: https://dl.acm.org/doi/abs/10.1145/3622837 }A Pretty Expressive Printer (OOPSLA'23)}.
 The pretty printer is expressive, provably optimal, and practically efficient.
 
-{1 Getting Started}
+{1 Quick Start}
+
+{[
+open Pretty_expressive
+(* Sets the page width limit to 80 *)
+let cf = Printer.default_cost_factory ~page_width:80 ()
+module P = Printer.Make (val cf)
+open P
+]}
+
+{[
+# pretty_print (text "Hello" ^^ text " World!") |> print_endline;;
+Hello World!
+- : unit = ()
+]}
+
+{1 A Tour of Pretty Expressive}
 
 General-purpose pretty printing is a process that produces human readable text from structured data.
 Users encode the structured data together with styling choices in an abstract {i document} {{!Pretty_expressive.Printer.Make.doc} [doc]}. This document contains printing instructions: things like text, newlines, and indentation.
@@ -18,7 +34,7 @@ Here’s a simple example that pretty prints a document encoding a fragment of c
 open Pretty_expressive
 
 (** Prints the example document [d] with the page width limit [w] *)
-let print_doc (w : int): unit =
+let print_doc (w : int) =
   let cf = Printer.default_cost_factory ~page_width:w () in
   let module P = Printer.Make (val cf) in
   let open P in
@@ -91,35 +107,31 @@ are in scope.
 With the above setup, we can pretty-print [d] with the cost factory [cf] by calling [pretty_print d].
 This returns a string that we can then put on screen.
 
-Let's now actually use the pretty printer.
+Let's now actually use the pretty printer with page width limit of 80.
 
-{[let () = print_doc 80 |> print_endline]}
-
-would output:
-
-{v
+{[
+# print_doc 80 |> print_endline
 while (true) {
     f();
     if (done()) exit();
 }
-v}
+- : unit = ()
+]}
 
-because the layout fits the page width limit, while having fewer lines.
-By contrast:
+It outputs the above layout because the layout fits the page width limit, while having fewer lines.
+By contrast, with the page width limit of 20:
 
-{[let () = print_doc 20 |> print_endline]}
-
-would output:
-
-{v
+{[
+# print_doc 20 |> print_endline
 while (true) {
     f();
     if (done())
         exit();
 }
-v}
+- : unit = ()
+]}
 
-because the other layout does not fit the page width limit,
+It outputs the above layout because the other layout does not fit the page width limit,
 leaving this output layout as the only option.
 
 {2 Alternative Document Construction}
@@ -130,18 +142,18 @@ Some may be easier than the other.
 For example, another way to construct a document for the above example could be:
 
 {[
-  let d = text "while (true) {" ^^
-          nest 4
-            (nl ^^ text "f();" ^^ nl ^^ text "if (done())" ^^
-             group (nest 4 (nl ^^ text "exit();"))) ^^
-          nl ^^ text "}"
+let d = text "while (true) {" ^^
+        nest 4
+          (nl ^^ text "f();" ^^ nl ^^ text "if (done())" ^^
+           group (nest 4 (nl ^^ text "exit();"))) ^^
+        nl ^^ text "}"
 ]}
 
 Here, the {{!Pretty_expressive.Printer.Make.group}[group]} combinator is used.
 It creates a choice: whether to collapse {{!Pretty_expressive.Printer.Make.nl}[nl]}
 to a single space or not.
 
-See {!Pretty_expressive.Printer.Make} for the full list of combinators that we provide.
+See {{!Pretty_expressive.Printer.Make}[Printer.Make]} for the full list of combinators that we provide.
 Since combinators are simply regular functions, users may also compose the existing combinators together
 to create new user-defined combinators.
 
@@ -221,7 +233,7 @@ document construction could take exponential time, and the resulting
 document whose DAG size is very large would also cause pretty-printing
 to be inefficient.
 
-{[
+{@ocaml skip[
       lparen <+>
       (acat (pretty x :: List.map pretty xs) <|> (* the horizontal style *)
        vcat (pretty x :: List.map pretty xs) <|> (* the vertical style *)
@@ -286,10 +298,11 @@ Consider the example in {!bestpractice}. Each list node can be rendered with thr
 the horizontal style, the vertical style, and the argument list style.
 
 {[
-# let example_sexp =
-    List [Atom "abc"; Atom "def"; List [Atom "ghi"; Atom "jkl"; Atom "mno"]];;
-val example_sexp : sexp =
+let example_sexp =
   List [Atom "abc"; Atom "def"; List [Atom "ghi"; Atom "jkl"; Atom "mno"]]
+]}
+
+{[
 # print_sexp example_sexp 15 |> print_endline;;
 (abc
  def
