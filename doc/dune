@@ -1,5 +1,4 @@
 (documentation
  (package pretty_expressive))
 
-(mdx (files :standard - *.mld)
-     (preludes prelude.ml))
+(mdx (preludes prelude.ml))

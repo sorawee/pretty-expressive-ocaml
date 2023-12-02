@@ -4,5 +4,5 @@
  (modules (:standard \ prelude))
  (modules_without_implementation signature))
 
-(mdx (files :standard - *.mli)
+(mdx (files :standard *.mli)
      (preludes prelude.ml))

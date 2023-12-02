@@ -220,6 +220,7 @@ let print_sexp (s : sexp) (w : int) =
       let x_d = pretty x in
       let xs_d = List.map pretty xs in
       lparen <+>
+      (* Share x_d and xs_d across choices *)
       (acat (x_d :: xs_d) <|> (* the horizontal style *)
        vcat (x_d :: xs_d) <|> (* the vertical style *)
        (x_d <+> space <+> vcat xs_d)) <+> (* the argument list style *)
@@ -230,11 +231,12 @@ let print_sexp (s : sexp) (w : int) =
 
 The important point is that we reuse [x_d] and [xs_d] across [<|>].
 Had we written the following code instead,
-document construction could take exponential time, and the resulting
+the document construction could take exponential time, and the resulting
 document whose DAG size is very large would also cause pretty-printing
 to be inefficient.
 
 {@ocaml skip[
+      (* Don't do this! *)
       lparen <+>
       (acat (pretty x :: List.map pretty xs) <|> (* the horizontal style *)
        vcat (pretty x :: List.map pretty xs) <|> (* the vertical style *)
