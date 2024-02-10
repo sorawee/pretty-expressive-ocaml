@@ -1,3 +1,7 @@
+## 0.3 (2024-02-10)
+
+* Add `pretty_print_debug`
+
 ## 0.2 (2023-11-28)
 
 * Change `<>` to `^^` to avoid shadowing the not equal operator 

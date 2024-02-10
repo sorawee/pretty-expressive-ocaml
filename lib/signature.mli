@@ -41,6 +41,9 @@ sig
   val debug : t -> string
   (** [debug c] produces a string representation of a cost [c] *)
 
+  val format_debug : Util.info -> string
+  (** [format_debug s] produces a debugging string from the output of
+      the core printer. *)
 end
 
 module type PrinterT =
@@ -288,6 +291,13 @@ Languages: Racket
            Pyret
 - : unit = ()
       ]} *)
+
+  val pretty_print_debug : ?init_c:int -> doc -> string
+  (** [pretty_print_debug] is the same as
+      {{!Signature.PrinterT.pretty_print}[pretty_print]}, but it contains
+      extra debugging information, customizable via
+      {{!Signature.CostFactory.format_debug}[format_debug]} *)
+
 
   (** {2 Other derived combinators} *)
 

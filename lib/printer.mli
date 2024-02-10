@@ -51,5 +51,22 @@ let default_cost_factory ~page_width ?computation_width () =
 
     let debug (o, h) = Printf.sprintf "(%d %d)" o h
 
+    let format_debug (result : Util.info) =
+      let lines = String.split_on_char '\n' result.out in
+      let content =
+        List.map (fun l ->
+            if String.length l > page_width then
+              String.sub l 0 page_width ^
+              "│" ^
+              String.sub l page_width (String.length l - page_width)
+            else
+              l ^ String.make (page_width - String.length l) ' '  ^ "│") lines
+        |> String.concat "\n"
+      in
+      Printf.sprintf "%s\nis_tainted: %b\ncost: %s"
+        content
+        result.is_tainted
+        result.cost
+
   end: Signature.CostFactory with type t = int * int)
 ]} *)

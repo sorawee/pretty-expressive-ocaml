@@ -34,6 +34,7 @@ module Core (C : Signature.CostFactory) = struct
       memo_w: int;
       nl_cnt: int;
       table: ((int, measure_set) Hashtbl.t) option }
+  (* invariant: none of the docs contains Fail, unless it's a Fail itself. *)
   and doc_case =
     | Text of string treeof * int
     | Newline of string option
@@ -80,7 +81,7 @@ module Core (C : Signature.CostFactory) = struct
       let memo_w = calc_weight d in
       { dc = Cost (c, d);
         id = next_id ();
-        memo_w = memo_w;
+        memo_w;
         nl_cnt = d.nl_cnt;
         table = init_table memo_w }
 
@@ -96,7 +97,7 @@ module Core (C : Signature.CostFactory) = struct
       let memo_w = min (calc_weight d1) (calc_weight d2) in
       { dc = Concat (d1, d2);
         id = next_id ();
-        memo_w = memo_w;
+        memo_w;
         nl_cnt = d1.nl_cnt + d2.nl_cnt;
         table = init_table memo_w }
 
@@ -108,7 +109,7 @@ module Core (C : Signature.CostFactory) = struct
       let memo_w = calc_weight d in
       { dc = Nest (n, d);
         id = next_id ();
-        memo_w = memo_w;
+        memo_w;
         nl_cnt = d.nl_cnt;
         table = init_table memo_w }
 
@@ -120,7 +121,7 @@ module Core (C : Signature.CostFactory) = struct
       let memo_w = calc_weight d in
       { dc = Reset d;
         id = next_id ();
-        memo_w = memo_w;
+        memo_w;
         nl_cnt = d.nl_cnt;
         table = init_table memo_w }
 
@@ -143,7 +144,7 @@ module Core (C : Signature.CostFactory) = struct
       let memo_w = min (calc_weight d1) (calc_weight d2) in
       { dc = Choice (d1, d2);
         id = next_id ();
-        memo_w = memo_w;
+        memo_w;
         nl_cnt = max d1.nl_cnt d2.nl_cnt;
         table = init_table memo_w }
 
@@ -177,7 +178,7 @@ module Core (C : Signature.CostFactory) = struct
           match process_left m1 with
           | Tainted mt2 -> m1 ++ mt2 ()
           | MeasureSet (m2 :: _) -> m1 ++ m2
-          | _ -> failwith "impossible")
+          | _ -> failwith "unreachable")
     | MeasureSet ms1 ->
       let do_one (m1 : measure): measure_set =
         let rec loop ms2 result current_best =
@@ -193,9 +194,9 @@ module Core (C : Signature.CostFactory) = struct
         | _ -> failwith "unreachable" in
       let rec fold_right (ms: measure list): measure_set =
         match ms with
-        | [] -> failwith "unreachable"
         | [m] -> do_one m
         | m :: ms -> merge (do_one m) (fold_right ms)
+        | [] -> failwith "unreachable"
       in fold_right ms1
 
   let memoize f: doc -> int -> int -> measure_set =
@@ -213,6 +214,12 @@ module Core (C : Signature.CostFactory) = struct
             ml
       else f g d c i
     in g
+
+  let choose_one (ml : measure_set): measure =
+    match ml with
+    | Tainted mt -> mt ()
+    | MeasureSet (m :: _) -> m
+    | _ -> failwith "unreachable"
 
   let print ?(init_c = 0) (d : doc): Util.info =
     let resolve self { dc; _ } (c : int) (i : int) : measure_set =
@@ -245,17 +252,12 @@ module Core (C : Signature.CostFactory) = struct
         | Text (_, len) -> (c + len > C.limit) || (i > C.limit)
         | _ -> (c > C.limit) || (i > C.limit) in
       if exceeds then
-        Tainted (fun () ->
-            match core () with
-            | Tainted mt -> mt ()
-            | MeasureSet (m :: _) -> m
-            | _ -> failwith "impossible")
+        Tainted (fun () -> choose_one (core ()))
       else core () in
     let (m, is_tainted) = match memoize resolve d init_c 0 with
       | MeasureSet (m :: _) -> (m, false)
       | Tainted m -> (m (), true)
-      | _ -> failwith "impossible" in
-
+      | _ -> failwith "unreachable" in
     (* In Racket, a doc can be printed with many cost factories, *)
     (* so the memoization tables should be cleared. *)
     (* However, in OCaml, there is no need to do the same, *)
@@ -264,9 +266,6 @@ module Core (C : Signature.CostFactory) = struct
     { out = String.concat "" (m.layout []);
       is_tainted = is_tainted;
       cost = C.debug m.cost }
-
-  let pretty_print ?(init_c = 0) (d : doc): string =
-    (print ~init_c:init_c d).out
 end
 
 (* ----------------------------------------------------------------------0---- *)
@@ -332,6 +331,13 @@ module Make (C : Signature.CostFactory): (Signature.PrinterT with type cost = C.
   let hcat = fold_doc (<->)
   let vcat = fold_doc (<$>)
 
+  let pretty_print ?(init_c = 0) (d : doc): string =
+    (print ~init_c:init_c d).out
+
+  let pretty_print_debug ?(init_c = 0) (d : doc): string =
+    let result = print ~init_c:init_c d in
+    C.format_debug result
+
 end
 
 
@@ -368,6 +374,23 @@ let default_cost_factory ~page_width ?computation_width () =
       if o1 = o2 then h1 <= h2 else o1 < o2
 
     let debug (o, h) = Printf.sprintf "(%d %d)" o h
+
+    let format_debug (result : Util.info) =
+      let lines = String.split_on_char '\n' result.out in
+      let content =
+        List.map (fun l ->
+            if String.length l > page_width then
+              String.sub l 0 page_width ^
+              "│" ^
+              String.sub l page_width (String.length l - page_width)
+            else
+              l ^ String.make (page_width - String.length l) ' '  ^ "│") lines
+        |> String.concat "\n"
+      in
+      Printf.sprintf "%s\nis_tainted: %b\ncost: %s"
+        content
+        result.is_tainted
+        result.cost
 
   end: Signature.CostFactory with type t = int * int)
 (* $MDX part-end *)

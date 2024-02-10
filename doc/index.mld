@@ -334,35 +334,31 @@ but with an extra component: the {i style cost}.
 {[
 let my_cost_factory ~page_width ?computation_width () =
   (module struct
-    type t = int * int * int
-    let limit = match computation_width with
-      | None -> (float_of_int page_width) *. 1.2 |> int_of_float
-      | Some computation_width -> computation_width
+    let cf = Printer.default_cost_factory ~page_width:page_width ?computation_width:computation_width ()
+    module F = (val cf)
 
-    let text pos len =
-      let stop = pos + len in
-      if stop > page_width then
-        let maxwc = max page_width pos in
-        let a = maxwc - page_width in
-        let b = stop - maxwc in
-        (b * (2*a + b), 0, 0)
+    type t = F.t * int
+
+    let limit = F.limit
+
+    let text pos len = (F.text pos len, 0)
+
+    let newline _ = (F.newline 0, 0)
+
+    let combine (c1, s1) (c2, s2) =
+      (F.combine c1 c2, s1 + s2)
+
+    let le (c1, s1) (c2, s2) =
+      if c1 = c2 then
+        s1 <= s2
       else
-        (0, 0, 0)
+        F.le c1 c2
 
-    let newline _ = (0, 1, 0)
+    let format_debug = F.format_debug
 
-    let combine (o1, h1, s1) (o2, h2, s2) =
-      (o1 + o2, h1 + h2, s1 + s2)
+    let debug (c, s) = Printf.sprintf "(%s %d)" (F.debug c) s
 
-    let le (o1, h1, s1) (o2, h2, s2) =
-      if o1 = o2 then
-        if h1 = h2 then s1 <= s2
-        else h1 < h2
-      else o1 < o2
-
-    let debug (o, h, s) = Printf.sprintf "(%d %d %d)" o h s
-
-  end: Signature.CostFactory with type t = int * int * int)
+  end: Signature.CostFactory with type t = (int * int) * int)
 ]}
 
 We now construct a function to convert an S-expression into a document,
@@ -387,7 +383,7 @@ let revised_print_sexp (s : sexp) (w : int) =
       let xs_d = List.map pretty xs in
       lparen <+>
       (acat (x_d :: xs_d) <|> (* the horizontal style *)
-       (cost (0, 0, 1) (vcat (x_d :: xs_d))) <|> (* the vertical style -- penalized *)
+       (cost ((0, 0), 1) (vcat (x_d :: xs_d))) <|> (* the vertical style -- penalized *)
        (x_d <+> space <+> vcat xs_d)) <+> (* the argument list style *)
       rparen
   in
