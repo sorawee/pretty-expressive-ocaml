@@ -341,6 +341,7 @@ module MakeCompat (C : Signature.CostFactory): (Signature.PrinterCompatT with ty
   let (<>) = (^^)
 end
 
+(* $MDX part-begin=default_cost_factory *)
 let default_cost_factory ~page_width ?computation_width () =
   (module struct
     type t = int * int
@@ -369,3 +370,4 @@ let default_cost_factory ~page_width ?computation_width () =
     let debug (o, h) = Printf.sprintf "(%d %d)" o h
 
   end: Signature.CostFactory with type t = int * int)
+(* $MDX part-end *)

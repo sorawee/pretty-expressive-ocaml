@@ -23,33 +23,33 @@ val default_cost_factory : page_width:int -> ?computation_width:int -> unit ->
 
     Internally, [default_cost_factory] is defined as:
 
-    {@ocaml skip[
-    let default_cost_factory ~page_width ?computation_width () =
-      (module struct
-        type t = int * int
-        let limit = match computation_width with
-          | None -> (float_of_int page_width) *. 1.2 |> int_of_float
-          | Some computation_width -> computation_width
+    {@ocaml file=printer.ml,part=default_cost_factory[
+let default_cost_factory ~page_width ?computation_width () =
+  (module struct
+    type t = int * int
+    let limit = match computation_width with
+      | None -> (float_of_int page_width) *. 1.2 |> int_of_float
+      | Some computation_width -> computation_width
 
-        let text pos len =
-          let stop = pos + len in
-          if stop > page_width then
-            let maxwc = max page_width pos in
-            let a = maxwc - page_width in
-            let b = stop - maxwc in
-            (b * (2*a + b), 0)
-          else
-            (0, 0)
+    let text pos len =
+      let stop = pos + len in
+      if stop > page_width then
+        let maxwc = max page_width pos in
+        let a = maxwc - page_width in
+        let b = stop - maxwc in
+        (b * (2*a + b), 0)
+      else
+        (0, 0)
 
-        let newline _ = (0, 1)
+    let newline _ = (0, 1)
 
-        let combine (o1, h1) (o2, h2) =
-          (o1 + o2, h1 + h2)
+    let combine (o1, h1) (o2, h2) =
+      (o1 + o2, h1 + h2)
 
-        let le (o1, h1) (o2, h2) =
-          if o1 = o2 then h1 <= h2 else o1 < o2
+    let le (o1, h1) (o2, h2) =
+      if o1 = o2 then h1 <= h2 else o1 < o2
 
-        let debug (o, h) = Printf.sprintf "(%d %d)" o h
+    let debug (o, h) = Printf.sprintf "(%d %d)" o h
 
-      end: Signature.CostFactory with type t = int * int)
-    ]} *)
+  end: Signature.CostFactory with type t = int * int)
+]} *)

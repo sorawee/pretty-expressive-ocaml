@@ -30,42 +30,42 @@ let print_doc_group (w : int) =
 let test_choice_doc_80 () =
   Alcotest.(check string) "same string"
     (String.concat "\n"
-       [ "while (true) {"
-       ; "    f();"
-       ; "    if (done()) exit();"
-       ; "}"
+       [ "while (true) {" ;
+         "    f();" ;
+         "    if (done()) exit();" ;
+         "}"
        ])
     (print_doc_choice 80)
 
 let test_choice_doc_20 () =
   Alcotest.(check string) "same string"
     (String.concat "\n"
-       [ "while (true) {"
-       ; "    f();"
-       ; "    if (done())"
-       ; "        exit();"
-       ; "}"
+       [ "while (true) {" ;
+         "    f();" ;
+         "    if (done())" ;
+         "        exit();" ;
+         "}"
        ])
     (print_doc_choice 20)
 
 let test_group_doc_80 () =
   Alcotest.(check string) "same string"
     (String.concat "\n"
-       [ "while (true) {"
-       ; "    f();"
-       ; "    if (done()) exit();"
-       ; "}"
+       [ "while (true) {" ;
+         "    f();" ;
+         "    if (done()) exit();" ;
+         "}"
        ])
     (print_doc_group 80)
 
 let test_group_doc_20 () =
   Alcotest.(check string) "same string"
     (String.concat "\n"
-       [ "while (true) {"
-       ; "    f();"
-       ; "    if (done())"
-       ; "        exit();"
-       ; "}"
+       [ "while (true) {" ;
+         "    f();" ;
+         "    if (done())" ;
+         "        exit();" ;
+         "}"
        ])
     (print_doc_group 20)
 
@@ -101,19 +101,19 @@ let example_sexp = List [Atom "a"; Atom "b"; Atom "c"; Atom "d"]
 let test_sexp_4 () =
   Alcotest.(check string) "same string"
     (String.concat "\n"
-       [ "(a"
-       ; " b"
-       ; " c"
-       ; " d)"
+       [ "(a" ;
+         " b" ;
+         " c" ;
+         " d)"
        ])
     (print_sexp example_sexp 4)
 
 let test_sexp_6 () =
   Alcotest.(check string) "same string"
     (String.concat "\n"
-       [ "(a b"
-       ; "   c"
-       ; "   d)"
+       [ "(a b" ;
+         "   c" ;
+         "   d)"
        ])
     (print_sexp example_sexp 6)
 
@@ -124,13 +124,13 @@ let test_sexp_10 () =
     (print_sexp example_sexp 10)
 
 let suite =
-  [ "choice; w = 80", `Quick, test_choice_doc_80
-  ; "choice; w = 20", `Quick, test_choice_doc_20
-  ; "group; w = 80", `Quick, test_group_doc_80
-  ; "group; w = 20", `Quick, test_group_doc_20
-  ; "sexp; w = 4", `Quick, test_sexp_4
-  ; "sexp; w = 6", `Quick, test_sexp_6
-  ; "sexp; w = 10", `Quick, test_sexp_10
+  [ "choice; w = 80", `Quick, test_choice_doc_80 ;
+    "choice; w = 20", `Quick, test_choice_doc_20 ;
+    "group; w = 80", `Quick, test_group_doc_80 ;
+    "group; w = 20", `Quick, test_group_doc_20 ;
+    "sexp; w = 4", `Quick, test_sexp_4 ;
+    "sexp; w = 6", `Quick, test_sexp_6 ;
+    "sexp; w = 10", `Quick, test_sexp_10
   ]
 
 let () =

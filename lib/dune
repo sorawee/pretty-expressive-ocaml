@@ -2,6 +2,7 @@
  (public_name pretty_expressive)
  (name pretty_expressive)
  (modules (:standard \ prelude))
+ ; (libraries batteries)
  (modules_without_implementation signature))
 
 (mdx (files :standard *.mli)
