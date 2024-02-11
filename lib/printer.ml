@@ -44,6 +44,7 @@ module Core (C : Signature.CostFactory) = struct
     | Align of doc
     | Reset of doc
     | Cost of C.t * doc
+    (* invariant: the returned doc must not be Fail *)
     | Context of (int -> int -> doc)
     (* invariant: the list length >= 2 *)
     | TwoColumns of (doc * doc) list
@@ -448,7 +449,7 @@ let default_cost_factory ~page_width ?computation_width () =
     let combine (o1, h1, ot1, bt1) (o2, h2, ot2, bt2) =
       (o1 + o2, h1 + h2, ot1 + ot2, bt1 + bt2)
 
-    let le c1 c2 = c1 < c2
+    let le c1 c2 = c1 <= c2
 
     let two_columns_overflow w = (0, 0, w, 0)
     let two_columns_bias w = (0, 0, 0, w)
