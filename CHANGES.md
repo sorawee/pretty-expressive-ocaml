@@ -1,7 +1,14 @@
-## 0.3 (2024-02-10)
+## 0.3 (2024-02-11)
 
-* Add `pretty_print_debug`
 * Add the `two_columns` construct
+* Rename `CostFacory.debug` to `CostFactory.string_of_cost`
+* Reorganize pretty printing functions:
+  * Rename `Printer.Make.print` to `Printer.Make.pretty_format_info` (with slightly different signature)
+  * Rename `Printer.Make.pretty_print` to `Printer.Make.pretty_format`
+  * Add `Printer.Make.pretty_print`, `Printer.Make.pretty_print_info`, and `Printer.Make.pretty_format_debug`.
+  * Essentially, `Printer.Make.pretty_print(*)` is suitable for printing to a channel. 
+    `Printer.Make.pretty_format(*)` is suitable for printing as a string. 
+    The suffix `_info` indicates that it returns debugging information.
 
 ## 0.2 (2023-11-28)
 

@@ -1,5 +1,4 @@
-type info = {
-  out : string;
+type 't info = {
   is_tainted : bool;
-  cost : string
+  cost : 't
 }

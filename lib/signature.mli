@@ -1,5 +1,8 @@
 (** This module defines types for the pretty printer. *)
 
+type renderer = string -> unit
+(** The type for a function to print from a pretty printer. *)
+
 module type CostFactory =
 sig
   (** The cost factory interface.
@@ -54,12 +57,12 @@ sig
   val limit: int
   (** [limit] is {{!page-index.complimit}the computation width limit}. *)
 
-  val debug : t -> string
-  (** [debug c] produces a string representation of a cost [c] *)
+  val string_of_cost : t -> string
+  (** [string_of_cost c] produces a string representation of a cost [c] *)
 
-  val format_debug : Util.info -> string
-  (** [format_debug s] produces a debugging string from the output of
-      the core printer. *)
+  val debug_format : string -> bool -> string -> string
+  (** [debug_format s is_tainted cost] produces a debugging string
+      from the output of the core printer. *)
 end
 
 module type PrinterT =
@@ -83,53 +86,76 @@ sig
 
   (** {2 Pretty printing functions} *)
 
-  val print : ?init_c:int -> doc -> Util.info
-  (** [print d] prints the document [d] to an [info] record.
-      The optional [~init_c] can be used to indicate that the printing begins
-      at a non-zero column position. *)
+  val pretty_print_info : ?init_c:int -> renderer -> doc -> cost Util.info
+  (** [pretty_print_info renderer d] prints the document [d]
+      by repeatedly calling [renderer] and outputs the debugging information
+      as an [info] record.The optional [~init_c] can be used to indicate
+      that the printing begins at a non-zero column position. *)
 
-  val pretty_print : ?init_c:int -> doc -> string
-  (** [pretty_print d] prints the document [d] to a string.
-      The optional [~init_c] can be used to indicate that the printing begins
-      at a non-zero column position.
+  val pretty_format_info : ?init_c:int -> doc -> string * cost Util.info
+  (** [pretty_format_info] is similar to {{!Printer.Make.pretty_print_info}[pretty_print_info]},
+      but it prints to a string instead of a renderer. *)
+
+  val pretty_print : ?init_c:int -> renderer -> doc -> unit
+  (** [pretty_print d] is similar to {{!Printer.Make.pretty_print_info}[pretty_print_info]}
+      without debugging information.
 
       {5 Examples:}
       {[
-# print_string "Languages: ";
-  pretty_print (align (text "Racket" ^^ nl ^^
-                       text "OCaml" ^^ nl ^^
-                       text "Pyret")) |> print_endline;;
-Languages: Racket
-OCaml
-Pyret
-- : unit = ()
+      # print_string "Languages: ";
+        pretty_print
+          print_string
+          (align (text "Racket" ^^ nl ^^
+                  text "OCaml" ^^ nl ^^
+                  text "Pyret"));;
+      Languages: Racket
+      OCaml
+      Pyret
+      - : unit = ()
 
-# print_string "Languages: ";
-  pretty_print ~init_c:11
-               (align (text "Racket" ^^ nl ^^
-                       text "OCaml" ^^ nl ^^
-                       text "Pyret")) |> print_endline;;
-Languages: Racket
-           OCaml
-           Pyret
-- : unit = ()
+      # print_string "Languages: ";
+        pretty_print
+          ~init_c:11
+          print_string
+          (align (text "Racket" ^^ nl ^^
+                  text "OCaml" ^^ nl ^^
+                  text "Pyret"));;
+      Languages: Racket
+                 OCaml
+                 Pyret
+      - : unit = ()
       ]} *)
 
-  val pretty_print_debug : ?init_c:int -> doc -> string
-  (** [pretty_print_debug] is the same as
-      {{!Printer.Make.pretty_print}[pretty_print]}, but it contains
-      extra debugging information, customizable via
-      {{!Signature.CostFactory.format_debug}[format_debug]}
+  val pretty_format : ?init_c:int -> doc -> string
+  (** [pretty_format] is similar to {{!Printer.Make.pretty_format}[pretty_format]},
+      without debugging information.
 
       {5 Examples:}
       {[
-# pretty_print_debug (text "Hello World" ^^ nl ^^
-                      text "Hi All!") |> print_endline;;
-Hello Worl│d
-Hi All!   │
-is_tainted: false
-cost: (1 1 0 0)
-- : unit = ()
+      # pretty_format (text "Hello World" ^^ nl ^^
+                       text "Hi All!") |> print_endline;;
+      Hello World
+      Hi All!
+      - : unit = ()
+      ]} *)
+
+  val pretty_format_debug : ?init_c:int -> doc -> string
+  (** [pretty_format_debug] is similar to
+      {{!Printer.Make.pretty_format_info}[pretty_format_info]},
+      but the debugging information is included as a part of the output string.
+      The format is customizable via {{!Signature.CostFactory.debug_format}[debug_format]}.
+
+      {5 Examples:}
+      {[
+      # pretty_format_debug (text "Hello World" ^^ nl ^^
+                             text "Hi All!") |> print_endline;;
+      1234567890
+      Hello Worl│d
+      Hi All!   │
+
+      is_tainted: false
+      cost: (1 0 1 0)
+      - : unit = ()
       ]} *)
 
   (** {2 Text document} *)
@@ -140,9 +166,9 @@ cost: (1 1 0 0)
 
       {5 Examples:}
       {[
-# pretty_print (text "Portal") |> print_endline;;
-Portal
-- : unit = ()
+      # pretty_print print_string (text "Portal");;
+      Portal
+      - : unit = ()
       ]} *)
 
   (** {2 Newline documents} *)
@@ -183,7 +209,7 @@ Portal
       ]}
 
       {[
-      # pretty_print (left_doc ^^ right_doc) |> print_endline;;
+      # pretty_print print_string (left_doc ^^ right_doc);;
       Splatoon
       NierAutomata
       FEZ
@@ -202,22 +228,24 @@ Portal
   (** [a <|> b] is a document for a choice between document [a] and [b].
 
       {[
-# let print_doc w =
-    let cf = Printer.default_cost_factory ~page_width:w () in
-    let module P = Printer.Make (val cf) in
-    let open P in
-    pretty_print (text "Chrono Trigger" <|>
-                 (text "Octopath" ^^ nl ^^ text "Traveler")) |> print_endline;;
-val print_doc : int -> unit = <fun>
+      # let print_doc w =
+          let cf = Printer.default_cost_factory ~page_width:w () in
+          let module P = Printer.Make (val cf) in
+          let open P in
+          pretty_print
+            print_string
+            (text "Chrono Trigger" <|>
+             (text "Octopath" ^^ nl ^^ text "Traveler"));;
+      val print_doc : int -> unit = <fun>
 
-# print_doc 10;;
-Octopath
-Traveler
-- : unit = ()
+      # print_doc 10;;
+      Octopath
+      Traveler
+      - : unit = ()
 
-# print_doc 15;;
-Chrono Trigger
-- : unit = ()
+      # print_doc 15;;
+      Chrono Trigger
+      - : unit = ()
       ]}
 
       See also {{!page-index.bestpractice}Best Practice for Document Construction} *)
@@ -229,11 +257,11 @@ Chrono Trigger
 
       {5 Examples:}
       {[
-# pretty_print (left_doc ^^ align right_doc) |> print_endline;;
-Splatoon
-NierAutomata
-    FEZ
-- : unit = ()
+      # pretty_print print_string (left_doc ^^ align right_doc);;
+      Splatoon
+      NierAutomata
+          FEZ
+      - : unit = ()
       ]}
 
       The aligned concatenation operator {!(<+>)} is a derived combinator that
@@ -246,22 +274,24 @@ NierAutomata
 
       {5 Examples:}
       {[
-# pretty_print (text "when 1 = 2:" ^^ nest 4 (nl ^^ text "print 'oh no!'"))
-  |> print_endline;;
-when 1 = 2:
-    print 'oh no!'
-- : unit = ()
+      # pretty_print
+          print_string
+          (text "when 1 = 2:" ^^ nest 4 (nl ^^ text "print 'oh no!'"));;
+      when 1 = 2:
+          print 'oh no!'
+      - : unit = ()
       ]}
 
       The increment does not affect content on the current line.
       In the following example, [when 1 = 2:] is not further indented.
 
       {[
-# pretty_print (nest 4 (text "when 1 = 2:" ^^ nl ^^ text "print 'oh no!'"))
-  |> print_endline;;
-when 1 = 2:
-    print 'oh no!'
-- : unit = ()
+      # pretty_print
+          print_string
+          (nest 4 (text "when 1 = 2:" ^^ nl ^^ text "print 'oh no!'"));;
+      when 1 = 2:
+          print 'oh no!'
+      - : unit = ()
       ]} *)
 
   val reset : doc -> doc
@@ -271,20 +301,21 @@ when 1 = 2:
 
       {5 Examples:}
       {[
-# let s_d = reset (text "#<<EOF" ^^ nl ^^
-                   text "Zelda" ^^ nl ^^
-                   text "Baba is you" ^^ nl ^^
-                   text "EOF");;
-val s_d : doc = <abstr>
+      # let s_d = reset (text "#<<EOF" ^^ nl ^^
+                         text "Zelda" ^^ nl ^^
+                         text "Baba is you" ^^ nl ^^
+                         text "EOF");;
+      val s_d : doc = <abstr>
 
-# pretty_print (text "when 1 = 2:" ^^ nest 4 (nl ^^ text "print " ^^ s_d))
-  |> print_endline;;
-when 1 = 2:
-    print #<<EOF
-Zelda
-Baba is you
-EOF
-- : unit = ()
+      # pretty_print
+          print_string
+          (text "when 1 = 2:" ^^ nest 4 (nl ^^ text "print " ^^ s_d));;
+      when 1 = 2:
+          print #<<EOF
+      Zelda
+      Baba is you
+      EOF
+      - : unit = ()
       ]} *)
 
   (** {2 Cost document} *)
@@ -298,91 +329,154 @@ EOF
 
       {5 Examples:}
       {[
-# pretty_print_debug (cost (1, 0, 0, 0) (text "CrossCode") <|>
-                     (text "Final" ^^ nl ^^ text "Fantasy")) |> print_endline;;
-Final     │
-Fantasy   │
-is_tainted: false
-cost: (0 1 0 0)
-- : unit = ()
+      # pretty_format_debug (cost (1, 0, 0, 0) (text "CrossCode") <|>
+                            (text "Final" ^^ nl ^^ text "Fantasy")) |> print_endline;;
+      1234567890
+      Final     │
+      Fantasy   │
 
-# pretty_print_debug (text "CrossCode" <|>
-                     (text "Final" ^^ nl ^^ text "Fantasy")) |> print_endline;;
-CrossCode │
-is_tainted: false
-cost: (0 0 0 0)
-- : unit = ()
+      is_tainted: false
+      cost: (0 0 1 0)
+      - : unit = ()
+
+      # pretty_format_debug (text "CrossCode" <|>
+                            (text "Final" ^^ nl ^^ text "Fantasy")) |> print_endline;;
+      1234567890
+      CrossCode │
+
+      is_tainted: false
+      cost: (0 0 0 0)
+      - : unit = ()
       ]}
 
       [cost] is especially useful in combination with
       {{!page-index.factory}a custom cost factory}.
       See the section for further details. *)
 
-  (** {2 Column documents} *)
+  (** {2 Filler documents} *)
 
   val two_columns : (doc * doc) list -> doc
   (** [two_columns ds] is a document that lays out the documents in [ds]
       in two columns.
 
-      Note that this is {b not quite} a {i table layout}, because in each row,
+      Note that this is {b not quite} a table layout, because in each row,
       the right column will start at the same line as the last line
       of the left column.
 
       Also note that some rows {i may} overflow the
       column separator (e.g. in order to avoid the global overflow over
-      the page width limit). The functions
-      {{!Signature.CostFactory.two_columns_bias}[two_columns_bias]} and
+      the page width limit). The function
       {{!Signature.CostFactory.two_columns_overflow}[two_columns_overflow]}
-      can be used to customize these behaviors.
+      can be used to customize this behavior.
 
-      The indentation level is set to the current column position
+      The indentation level is set to the initial current column position
       (in the same manner as {{!Printer.Make.align}[align]}) so that on entering
       a new line, the left column of the next row starts at the right position.
 
+      Unlike {{:https://hackage.haskell.org/package/wl-pprint-1.2.1/docs/Text-PrettyPrint-Leijen.html#v:fill}[fill]}
+      or {{:https://hackage.haskell.org/package/wl-pprint-1.2.1/docs/Text-PrettyPrint-Leijen.html#v:fillBreak}[fillBreak]}
+      from Wadler/Leijen's pretty printer, which requires users to specify a fixed position of the column separator,
+      [two_columns] will find the position automatically, and will find the leftmost one.
+
       {5 Examples:}
+
+      Following example is taken from {{:https://hackage.haskell.org/package/wl-pprint-1.2.1/docs/Text-PrettyPrint-Leijen.html}}
+
       {[
-# let print_doc w =
-    let cf = Printer.default_cost_factory ~page_width:w () in
-    let module P = Printer.Make (val cf) in
-    let open P in
-    let d = (text "let ") ^^
-            (two_columns [ (text "q",      text " = 7 * 6,") ;
-                           (text "ex_ans", text " = 42,") ;
-                           (text "ans",    text " = get(),") ]) ^^
-            nl ^^ text "in" ^^
-            nest 2 (nl ^^ text "validate") in
-    pretty_print_debug d |> print_endline;;
-val print_doc : int -> unit = <fun>
+      # let types = [ ("empty",     "Doc") ;
+                      ("nest",      "Int -> Doc -> Doc") ;
+                      ("linebreak", "Doc") ];;
+      val types : (string * string) list =
+        [("empty", "Doc"); ("nest", "Int -> Doc -> Doc"); ("linebreak", "Doc")]
 
-# print_doc 19;;
-let q      = 7 * 6,│
-    ex_ans = 42,   │
-    ans    = get(),│
-in                 │
-  validate         │
-is_tainted: false
-cost: (0 4 0 2)
-- : unit = ()
+      # let print_doc w =
+          let cf = Printer.default_cost_factory ~page_width:w () in
+          let module P = Printer.Make (val cf) in
+          let open P in
+          let d = text "let " ^^
+                  two_columns (List.map
+                                 (fun (n, t) ->
+                                    (text n, text " :: " ^^ text t))
+                                 types) in
+          pretty_format_debug d |> print_endline;;
+      val print_doc : int -> unit = <fun>
 
-# print_doc 18;;
-let q   = 7 * 6,  │
-    ex_ans = 42,  │
-    ans = get(),  │
-in                │
-  validate        │
-is_tainted: false
-cost: (0 4 3 1)
-- : unit = ()
+      # print_doc 34;;
+      1234567890123456789012345678901234
+      let empty     :: Doc              │
+          nest      :: Int -> Doc -> Doc│
+          linebreak :: Doc              │
 
-# print_doc 15;;
-let q = 7 * 6, │
-    ex_ans = 42│,
-    ans = get()│,
-in             │
-  validate     │
-is_tainted: false
-cost: (2 4 7 0)
-- : unit = ()
+      is_tainted: false
+      cost: (0 0 2 2)
+      - : unit = ()
+
+      # print_doc 33;;
+      123456789012345678901234567890123
+      let empty :: Doc                 │
+          nest  :: Int -> Doc -> Doc   │
+          linebreak :: Doc             │
+
+      is_tainted: false
+      cost: (0 4 2 1)
+      - : unit = ()
+
+      # print_doc 28;;
+      1234567890123456789012345678
+      let empty :: Doc            │
+          nest :: Int -> Doc -> Do│c
+          linebreak :: Doc        │
+
+      is_tainted: false
+      cost: (1 6 2 0)
+      - : unit = ()
+
+      # let print_doc_nl w =
+          let cf = Printer.default_cost_factory ~page_width:w () in
+          let module P = Printer.Make (val cf) in
+          let open P in
+          let d = text "let " ^^
+                  two_columns (List.map
+                                 (fun (n, t) ->
+                                    (text n ^^ (nl <|> empty),
+                                     text " :: " ^^ text t))
+                                 types) in
+          pretty_format_debug d |> print_endline;;
+      val print_doc_nl : int -> unit = <fun>
+
+      # print_doc_nl 34;;
+      1234567890123456789012345678901234
+      let empty     :: Doc              │
+          nest      :: Int -> Doc -> Doc│
+          linebreak :: Doc              │
+
+      is_tainted: false
+      cost: (0 0 2 3)
+      - : unit = ()
+
+      # print_doc_nl 33;;
+      123456789012345678901234567890123
+      let empty :: Doc                 │
+          nest  :: Int -> Doc -> Doc   │
+          linebreak                    │
+                :: Doc                 │
+
+      is_tainted: false
+      cost: (0 0 3 2)
+      - : unit = ()
+
+      # print_doc_nl 28;;
+      1234567890123456789012345678
+      let empty                   │
+           :: Doc                 │
+          nest                    │
+           :: Int -> Doc -> Doc   │
+          linebreak               │
+           :: Doc                 │
+
+      is_tainted: false
+      cost: (0 0 5 0)
+      - : unit = ()
       ]} *)
 
   (** {2 Failure document} *)
@@ -393,12 +487,12 @@ cost: (2 4 7 0)
 
       {5 Examples:}
       {[
-# pretty_print (text "Sea of Stars" ^^ fail) |> print_endline;;
-Exception: Failure "fails to render".
+      # pretty_print print_string (text "Sea of Stars" ^^ fail);;
+      Exception: Failure "fails to render".
 
-# pretty_print ((text "Sea of Stars" ^^ fail) <|> text "Hades") |> print_endline;;
-Hades
-- : unit = ()
+      # pretty_print print_string ((text "Sea of Stars" ^^ fail) <|> text "Hades");;
+      Hades
+      - : unit = ()
       ]} *)
 
 
@@ -410,26 +504,30 @@ Hades
 
       {5 Examples:}
       {[
-# pretty_print (flatten (text "Fire Emblem" ^^ nl ^^ text "Awakening"))
-  |> print_endline;;
-Fire Emblem Awakening
-- : unit = ()
+      # pretty_print
+          print_string
+          (flatten (text "Fire Emblem" ^^ nl ^^ text "Awakening"));;
+      Fire Emblem Awakening
+      - : unit = ()
 
-# pretty_print (flatten (text "Mario + Rabbids" ^^ break ^^ text "Kingdom Battle"))
-  |> print_endline;;
-Mario + RabbidsKingdom Battle
-- : unit = ()
+      # pretty_print
+          print_string
+          (flatten (text "Mario + Rabbids" ^^ break ^^ text "Kingdom Battle"));;
+      Mario + RabbidsKingdom Battle
+      - : unit = ()
 
-# pretty_print (flatten (text "XCOM 2" ^^ hard_nl ^^ text "War of the Chosen"))
-  |> print_endline;;
-Exception: Failure "fails to render".
+      # pretty_print
+          print_string
+          (flatten (text "XCOM 2" ^^ hard_nl ^^ text "War of the Chosen"));;
+      Exception: Failure "fails to render".
 
-# pretty_print (flatten (text "Tactics Ogre" ^^
-                         newline (Some ": ") ^^
-                         text "Reborn"))
-  |> print_endline;;
-Tactics Ogre: Reborn
-- : unit = ()
+      # pretty_print
+          print_string
+          (flatten (text "Tactics Ogre" ^^
+                    newline (Some ": ") ^^
+                    text "Reborn"));;
+      Tactics Ogre: Reborn
+      - : unit = ()
       ]} *)
 
   val group : doc -> doc
@@ -491,7 +589,6 @@ Tactics Ogre: Reborn
   val dquote : doc
   (** Equivalent to [text "\""] *)
 end
-
 
 module type PrinterCompatT =
 sig

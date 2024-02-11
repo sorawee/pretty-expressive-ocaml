@@ -8,6 +8,10 @@ module MakeCompat(C : Signature.CostFactory): (Signature.PrinterCompatT with typ
     that are compatible with the paper.
     {b Using [open] on it will shadow built-in identifiers.} *)
 
+val make_debug_format : int -> string -> bool -> string -> string
+(** [make_debug_format limit content is_tainted cost] returns a debugging string
+    containing these parameters. *)
+
 val default_cost_factory : page_width:int -> ?computation_width:int -> unit ->
                            (module Signature.CostFactory with type t = int * int * int * int)
 (** The default cost factory, parameterized by the page width limit [page_width],
@@ -20,9 +24,10 @@ val default_cost_factory : page_width:int -> ?computation_width:int -> unit ->
 
     {ul {- The first component is {i badness}, which is roughly speaking
            the sum of squared overflows over the page width limit}
-        {- The second component is the height (number of newlines).}
-        {- The third component is sum of overflows over a column separator.}
-        {- The fourth component is bias toward choosing a leftmost column separator.} }
+        {- The second component is sum of overflows over a column separator.}
+        {- The third component is the height (number of newlines).}
+        {- The fourth component is bias penalty to encourage toward choosing
+           a leftmost column separator.} }
 
     Internally, [default_cost_factory] is defined as:
 
@@ -30,6 +35,7 @@ val default_cost_factory : page_width:int -> ?computation_width:int -> unit ->
 let default_cost_factory ~page_width ?computation_width () =
   (module struct
     type t = int * int * int * int
+
     let limit = match computation_width with
       | None -> (float_of_int page_width) *. 1.2 |> int_of_float
       | Some computation_width -> computation_width
@@ -44,34 +50,19 @@ let default_cost_factory ~page_width ?computation_width () =
       else
         (0, 0, 0, 0)
 
-    let newline _ = (0, 1, 0, 0)
+    let newline _ = (0, 0, 1, 0)
 
-    let combine (o1, h1, ot1, bt1) (o2, h2, ot2, bt2) =
-      (o1 + o2, h1 + h2, ot1 + ot2, bt1 + bt2)
+    let combine (o1, ot1, h1, bt1) (o2, ot2, h2, bt2) =
+      (o1 + o2, ot1 + ot2, h1 + h2, bt1 + bt2)
 
     let le c1 c2 = c1 <= c2
 
-    let two_columns_overflow w = (0, 0, w, 0)
-    let two_columns_bias w = (0, 0, 0, w)
+    let two_columns_overflow w = (0, w, 0, 0)
 
-    let debug (o, h, ot, bt) = Printf.sprintf "(%d %d %d %d)" o h ot bt
+    let two_columns_bias     w = (0, 0, 0, w)
 
-    let format_debug (result : Util.info) =
-      let lines = String.split_on_char '\n' result.out in
-      let content =
-        List.map (fun l ->
-            if String.length l > page_width then
-              String.sub l 0 page_width ^
-              "│" ^
-              String.sub l page_width (String.length l - page_width)
-            else
-              l ^ String.make (page_width - String.length l) ' '  ^ "│") lines
-        |> String.concat "\n"
-      in
-      Printf.sprintf "%s\nis_tainted: %b\ncost: %s"
-        content
-        result.is_tainted
-        result.cost
+    let string_of_cost (o, ot, h, bt) = Printf.sprintf "(%d %d %d %d)" o ot h bt
 
+    let debug_format = make_debug_format page_width
   end: Signature.CostFactory with type t = int * int * int * int)
 ]} *)

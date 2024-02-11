@@ -12,7 +12,7 @@ let print_doc_choice (w : int) =
               (space ^^ exit_d) <|> nest 4 (nl ^^ exit_d))) ^^
           nl ^^ text "}"
   in
-  pretty_print d
+  pretty_format d
 
 let print_doc_group (w : int) =
   let cf = Printer.default_cost_factory ~page_width:w () in
@@ -25,7 +25,7 @@ let print_doc_group (w : int) =
              group (nest 4 (nl ^^ text "exit();"))) ^^
           nl ^^ text "}"
   in
-  pretty_print d
+  pretty_format d
 
 let test_choice_doc_80 () =
   Alcotest.(check string) "same string"
@@ -94,7 +94,7 @@ let print_sexp (s : sexp) (w : int) =
        (x_d <+> space <+> vcat xs_d)) <+> (* the argument list style *)
       rparen
   in
-  pretty_print (pretty s)
+  pretty_format (pretty s)
 
 let example_sexp = List [Atom "a"; Atom "b"; Atom "c"; Atom "d"]
 

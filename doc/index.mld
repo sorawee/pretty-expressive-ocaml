@@ -14,7 +14,7 @@ open P
 ]}
 
 {[
-# pretty_print (text "Hello" ^^ text " World!");;
+# pretty_format (text "Hello" ^^ text " World!");;
 - : string = "Hello World!"
 ]}
 
@@ -49,7 +49,7 @@ let print_doc (w : int) =
               (space ^^ exit_d) <|> nest 4 (nl ^^ exit_d))) ^^
           nl ^^ text "}"
   in
-  pretty_print d
+  pretty_print print_string d
 ]}
 
 There is a lot of code above, so let's unpack it.
@@ -113,7 +113,7 @@ This returns a string that we can then put on screen.
 Let's now actually use the pretty printer with page width limit of 80.
 
 {[
-# print_doc 80 |> print_endline
+# print_doc 80;;
 while (true) {
     f();
     if (done()) exit();
@@ -126,7 +126,7 @@ compared to the second layout. By contrast, with the page width limit of 20,
 the second layout is now chosen.
 
 {[
-# print_doc 20 |> print_endline
+# print_doc 20;;
 while (true) {
     f();
     if (done())
@@ -226,7 +226,7 @@ let print_sexp (s : sexp) (w : int) =
        (x_d <+> space <+> vcat xs_d)) <+> (* the argument list style *)
       rparen
   in
-  pretty_print (pretty s)
+  pretty_print print_string (pretty s)
 ]}
 
 The important point is that we reuse [x_d] and [xs_d] across [<|>].
@@ -278,7 +278,8 @@ exceeds the computation width limit of 5, since the indentation level exceeds 5 
 
 When all possible layout printing due to a document exceeds the computation width limit,
 {!Pretty_expressive} will still output a layout, with no guarantee that the layout is optimal.
-In such case, we say that the output layout is {i tainted}. The {{!Pretty_expressive.Util.info}[info]} record and the {{!Pretty_expressive.Printer.Make.print}[print]} function can be used to find if the output layout is tainted or not.
+In such case, we say that the output layout is {i tainted}. The {{!Pretty_expressive.Util.info}[info]} record and
+functions such as {{!Pretty_expressive.Printer.Make.pretty_print_info}[pretty_print_info]} can be used to find if the output layout is tainted or not.
 
 {2:factory Cost Factory}
 
@@ -306,7 +307,7 @@ let example_sexp =
 ]}
 
 {[
-# print_sexp example_sexp 15 |> print_endline;;
+# print_sexp example_sexp 15;;
 (abc
  def
  (ghi jkl mno))
@@ -355,11 +356,12 @@ let my_cost_factory ~page_width ?computation_width () =
         F.le c1 c2
 
     let two_columns_overflow w = (F.two_columns_overflow w, 0)
+
     let two_columns_bias w = (F.two_columns_bias w, 0)
 
-    let format_debug = F.format_debug
+    let string_of_cost (c, s) = Printf.sprintf "(%s %d)" (F.string_of_cost c) s
 
-    let debug (c, s) = Printf.sprintf "(%s %d)" (F.debug c) s
+    let debug_format = F.debug_format
   end: Signature.CostFactory with type t = (int * int * int * int) * int)
 ]}
 
@@ -389,13 +391,13 @@ let revised_print_sexp (s : sexp) (w : int) =
        (x_d <+> space <+> vcat xs_d)) <+> (* the argument list style *)
       rparen
   in
-  pretty_print (pretty s)
+  pretty_print print_string (pretty s)
 ]}
 
 Now we can pretty print as we desired:
 
 {[
-# revised_print_sexp example_sexp 15 |> print_endline;;
+# revised_print_sexp example_sexp 15;;
 (abc def
      (ghi jkl
           mno))
@@ -408,7 +410,7 @@ With an even lower page width limit,
 the vertical style is the only way to avoid overflow, so it is employed.
 
 {[
-# revised_print_sexp example_sexp 10 |> print_endline;;
+# revised_print_sexp example_sexp 10;;
 (abc
  def
  (ghi

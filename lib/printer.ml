@@ -5,12 +5,12 @@ type 's treeof =
   | One of 's
   | Cons of 's treeof * 's treeof
 
-let tree_flatten (t: 's treeof): 's list =
-  let rec loop (t: 's treeof) (acc: 's list) =
+let render_tree (renderer : Signature.renderer) (t: 's treeof): unit =
+  let rec loop (t: 's treeof) =
     match t with
-    | One v -> v :: acc
-    | Cons (x, y) -> loop x (loop y acc)
-  in loop t []
+    | One v -> renderer v
+    | Cons (x, y) -> loop x; loop y
+  in loop t
 
 module Core (C : Signature.CostFactory) = struct
   let global_id = ref 0
@@ -19,7 +19,7 @@ module Core (C : Signature.CostFactory) = struct
     global_id := id + 1;
     id
 
-  type measure = { last: int; cost: C.t; layout: string list -> string list }
+  type measure = { last: int; cost: C.t; layout: unit -> unit }
 
   let (<==) (m1 : measure) (m2 : measure): bool =
     m1.last <= m2.last && C.le m1.cost m2.cost
@@ -211,7 +211,9 @@ module Core (C : Signature.CostFactory) = struct
   let (++) (m1 : measure) (m2 : measure): measure =
     { last = m2.last;
       cost = C.combine m1.cost m2.cost;
-      layout = fun ss -> m1.layout (m2.layout ss) }
+      layout = fun () ->
+        m1.layout ();
+        m2.layout () }
 
   let process_concat
       (process_left : measure -> measure_set)
@@ -266,18 +268,23 @@ module Core (C : Signature.CostFactory) = struct
     | MeasureSet (m :: _) -> m
     | _ -> failwith "unreachable"
 
-  let print ?(init_c = 0) (d : doc): Util.info =
+  let pretty_print_info
+      ?(init_c = 0)
+      (renderer : Signature.renderer)
+      (d : doc): cost Util.info =
     let resolve self { dc; _ } (c : int) (i : int) : measure_set =
       let core () =
         match dc with
         | Text (s, len_s) ->
-          MeasureSet [{ last = c + len_s;
-                        cost = C.text c len_s;
-                        layout = fun ss -> (tree_flatten s) @ ss }]
+          MeasureSet [{ last = c + len_s ;
+                        cost = C.text c len_s ;
+                        layout = fun () -> render_tree renderer s }]
         | Newline _ ->
-          MeasureSet [{ last = i;
-                        cost = C.newline i;
-                        layout = fun ss -> "\n" :: String.make i ' ' :: ss }]
+          MeasureSet [{ last = i ;
+                        cost = C.newline i ;
+                        layout = fun () ->
+                          renderer "\n";
+                          renderer (String.make i ' ') }]
         | Concat (d1, d2) ->
           process_concat (fun (m1 : measure) -> self d2 m1.last i) (self d1 c i)
         | Choice (d1, d2) ->
@@ -347,10 +354,8 @@ module Core (C : Signature.CostFactory) = struct
     (* so the memoization tables should be cleared. *)
     (* However, in OCaml, there is no need to do the same, *)
     (* since a doc is tied to a cost factory. *)
-
-    { out = String.concat "" (m.layout []);
-      is_tainted = is_tainted;
-      cost = C.debug m.cost }
+    m.layout ();
+    { is_tainted ; cost = m.cost }
 end
 
 (* ----------------------------------------------------------------------0---- *)
@@ -410,13 +415,22 @@ module Make (C : Signature.CostFactory): (Signature.PrinterT with type cost = C.
 
   let hcat = fold_doc (<->)
 
-  let pretty_print ?(init_c = 0) (d : doc): string =
-    (print ~init_c:init_c d).out
+  let pretty_format_info ?(init_c = 0) (d : doc): string * C.t Util.info =
+    let buf = Buffer.create 16 in
+    let info = pretty_print_info ~init_c:init_c (Buffer.add_string buf) d in
+    (Buffer.contents buf, info)
 
-  let pretty_print_debug ?(init_c = 0) (d : doc): string =
-    let result = print ~init_c:init_c d in
-    C.format_debug result
+  let pretty_print ?(init_c = 0) (renderer : Signature.renderer) (d : doc): unit =
+    let _ = pretty_print_info ~init_c:init_c renderer d in
+    ()
 
+  let pretty_format ?(init_c = 0) (d : doc): string =
+    let (s, _) = pretty_format_info ~init_c:init_c d in s
+
+  let pretty_format_debug ?(init_c = 0) (d : doc): string =
+    let (content, ({ is_tainted ; cost } : C.t Util.info)) =
+      pretty_format_info ~init_c:init_c d in
+    C.debug_format content is_tainted (C.string_of_cost cost)
 end
 
 
@@ -426,10 +440,33 @@ module MakeCompat (C : Signature.CostFactory): (Signature.PrinterCompatT with ty
   let (<>) = (^^)
 end
 
+let make_debug_format page_width content is_tainted cost =
+  let lines = String.split_on_char '\n' content in
+  let zero_code = Char.code '0' in
+  let header = String.init
+      page_width
+      (fun i -> ((i + 1) mod 10 + zero_code) |> Char.chr) in
+  let content =
+    List.map (fun l ->
+        if String.length l > page_width then
+          String.sub l 0 page_width ^
+          "│" ^
+          String.sub l page_width (String.length l - page_width)
+        else
+          l ^ String.make (page_width - String.length l) ' '  ^ "│") lines
+    |> String.concat "\n"
+  in
+  Printf.sprintf "%s\n%s\n\nis_tainted: %b\ncost: %s"
+    header
+    content
+    is_tainted
+    cost
+
 (* $MDX part-begin=default_cost_factory *)
 let default_cost_factory ~page_width ?computation_width () =
   (module struct
     type t = int * int * int * int
+
     let limit = match computation_width with
       | None -> (float_of_int page_width) *. 1.2 |> int_of_float
       | Some computation_width -> computation_width
@@ -444,34 +481,19 @@ let default_cost_factory ~page_width ?computation_width () =
       else
         (0, 0, 0, 0)
 
-    let newline _ = (0, 1, 0, 0)
+    let newline _ = (0, 0, 1, 0)
 
-    let combine (o1, h1, ot1, bt1) (o2, h2, ot2, bt2) =
-      (o1 + o2, h1 + h2, ot1 + ot2, bt1 + bt2)
+    let combine (o1, ot1, h1, bt1) (o2, ot2, h2, bt2) =
+      (o1 + o2, ot1 + ot2, h1 + h2, bt1 + bt2)
 
     let le c1 c2 = c1 <= c2
 
-    let two_columns_overflow w = (0, 0, w, 0)
-    let two_columns_bias w = (0, 0, 0, w)
+    let two_columns_overflow w = (0, w, 0, 0)
 
-    let debug (o, h, ot, bt) = Printf.sprintf "(%d %d %d %d)" o h ot bt
+    let two_columns_bias     w = (0, 0, 0, w)
 
-    let format_debug (result : Util.info) =
-      let lines = String.split_on_char '\n' result.out in
-      let content =
-        List.map (fun l ->
-            if String.length l > page_width then
-              String.sub l 0 page_width ^
-              "│" ^
-              String.sub l page_width (String.length l - page_width)
-            else
-              l ^ String.make (page_width - String.length l) ' '  ^ "│") lines
-        |> String.concat "\n"
-      in
-      Printf.sprintf "%s\nis_tainted: %b\ncost: %s"
-        content
-        result.is_tainted
-        result.cost
+    let string_of_cost (o, ot, h, bt) = Printf.sprintf "(%d %d %d %d)" o ot h bt
 
+    let debug_format = make_debug_format page_width
   end: Signature.CostFactory with type t = int * int * int * int)
 (* $MDX part-end *)

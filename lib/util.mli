@@ -1,11 +1,9 @@
 (** This module provides utilities. *)
 
-type info = {
-  out : string;
-  (** Output of the pretty printer *)
+type 't info = {
   is_tainted : bool;
   (** Taintedness status *)
-  cost : string
+  cost : 't
   (** Cost of the output layout *)
 }
 (** An [info] record, returned from the pretty printer. *)
