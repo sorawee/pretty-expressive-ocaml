@@ -14,6 +14,12 @@ sig
           {- [combine] is associative and has the identity equal to [text 0 0]}
           {- [text c 0] = [text 0 0] for any [c]}}
 
+      The following contracts are required if {{!Printer.Make.two_columns}[two_columns]}
+      is used.
+
+      {ul {- If [a] <= [b], then [le (two_columns_bias a) (two_columns_bias b)]}
+          {- If [a] <= [b], then [le (two_columns_overflow a) (two_columns_overflow b)]}}
+
       See {{!Printer.default_cost_factory}[default_cost_factory]},
       {{!page-index.factory}the cost factory section},
       and {{: https://dl.acm.org/doi/abs/10.1145/3622837 }the paper}
@@ -34,6 +40,16 @@ sig
 
   val le : t -> t -> bool
   (** [le x y] tests if the cost [x] is less than or equal to the cost [y]. *)
+
+  val two_columns_bias : int -> t
+  (** [two_columns_bias i] is the bias cost, added to each possible
+      column separator so that the leftmost column separator is preferred. *)
+
+  val two_columns_overflow : int -> t
+  (** [two_columns_overflow i] is the cost due to exceeding the column separator.
+      Make this cost greater than the usual overflow cost
+      (for exceeding the page width limit) to prefer going over the
+      page width limit instead of going over the column separator. *)
 
   val limit: int
   (** [limit] is {{!page-index.complimit}the computation width limit}. *)
@@ -65,6 +81,56 @@ sig
       open P
       ]} *)
 
+  (** {2 Pretty printing functions} *)
+
+  val print : ?init_c:int -> doc -> Util.info
+  (** [print d] prints the document [d] to an [info] record.
+      The optional [~init_c] can be used to indicate that the printing begins
+      at a non-zero column position. *)
+
+  val pretty_print : ?init_c:int -> doc -> string
+  (** [pretty_print d] prints the document [d] to a string.
+      The optional [~init_c] can be used to indicate that the printing begins
+      at a non-zero column position.
+
+      {5 Examples:}
+      {[
+# print_string "Languages: ";
+  pretty_print (align (text "Racket" ^^ nl ^^
+                       text "OCaml" ^^ nl ^^
+                       text "Pyret")) |> print_endline;;
+Languages: Racket
+OCaml
+Pyret
+- : unit = ()
+
+# print_string "Languages: ";
+  pretty_print ~init_c:11
+               (align (text "Racket" ^^ nl ^^
+                       text "OCaml" ^^ nl ^^
+                       text "Pyret")) |> print_endline;;
+Languages: Racket
+           OCaml
+           Pyret
+- : unit = ()
+      ]} *)
+
+  val pretty_print_debug : ?init_c:int -> doc -> string
+  (** [pretty_print_debug] is the same as
+      {{!Printer.Make.pretty_print}[pretty_print]}, but it contains
+      extra debugging information, customizable via
+      {{!Signature.CostFactory.format_debug}[format_debug]}
+
+      {5 Examples:}
+      {[
+# pretty_print_debug (text "Hello World" ^^ nl ^^
+                      text "Hi All!") |> print_endline;;
+Hello Worl│d
+Hi All!   │
+is_tainted: false
+cost: (1 1 0 0)
+- : unit = ()
+      ]} *)
 
   (** {2 Text document} *)
 
@@ -143,10 +209,12 @@ Portal
     pretty_print (text "Chrono Trigger" <|>
                  (text "Octopath" ^^ nl ^^ text "Traveler")) |> print_endline;;
 val print_doc : int -> unit = <fun>
+
 # print_doc 10;;
 Octopath
 Traveler
 - : unit = ()
+
 # print_doc 15;;
 Chrono Trigger
 - : unit = ()
@@ -208,6 +276,7 @@ when 1 = 2:
                    text "Baba is you" ^^ nl ^^
                    text "EOF");;
 val s_d : doc = <abstr>
+
 # pretty_print (text "when 1 = 2:" ^^ nest 4 (nl ^^ text "print " ^^ s_d))
   |> print_endline;;
 when 1 = 2:
@@ -229,20 +298,92 @@ EOF
 
       {5 Examples:}
       {[
-# pretty_print (cost (1, 0) (text "CrossCode") <|>
-                (text "Final" ^^ nl ^^ text "Fantasy")) |> print_endline;;
-Final
-Fantasy
+# pretty_print_debug (cost (1, 0, 0, 0) (text "CrossCode") <|>
+                     (text "Final" ^^ nl ^^ text "Fantasy")) |> print_endline;;
+Final     │
+Fantasy   │
+is_tainted: false
+cost: (0 1 0 0)
 - : unit = ()
-# pretty_print (text "CrossCode" <|>
-                (text "Final" ^^ nl ^^ text "Fantasy")) |> print_endline;;
-CrossCode
+
+# pretty_print_debug (text "CrossCode" <|>
+                     (text "Final" ^^ nl ^^ text "Fantasy")) |> print_endline;;
+CrossCode │
+is_tainted: false
+cost: (0 0 0 0)
 - : unit = ()
       ]}
 
       [cost] is especially useful in combination with
       {{!page-index.factory}a custom cost factory}.
       See the section for further details. *)
+
+  (** {2 Column documents} *)
+
+  val two_columns : (doc * doc) list -> doc
+  (** [two_columns ds] is a document that lays out the documents in [ds]
+      in two columns.
+
+      Note that this is {b not quite} a {i table layout}, because in each row,
+      the right column will start at the same line as the last line
+      of the left column.
+
+      Also note that some rows {i may} overflow the
+      column separator (e.g. in order to avoid the global overflow over
+      the page width limit). The functions
+      {{!Signature.CostFactory.two_columns_bias}[two_columns_bias]} and
+      {{!Signature.CostFactory.two_columns_overflow}[two_columns_overflow]}
+      can be used to customize these behaviors.
+
+      The indentation level is set to the current column position
+      (in the same manner as {{!Printer.Make.align}[align]}) so that on entering
+      a new line, the left column of the next row starts at the right position.
+
+      {5 Examples:}
+      {[
+# let print_doc w =
+    let cf = Printer.default_cost_factory ~page_width:w () in
+    let module P = Printer.Make (val cf) in
+    let open P in
+    let d = (text "let ") ^^
+            (two_columns [ (text "q",      text " = 7 * 6,") ;
+                           (text "ex_ans", text " = 42,") ;
+                           (text "ans",    text " = get(),") ]) ^^
+            nl ^^ text "in" ^^
+            nest 2 (nl ^^ text "validate") in
+    pretty_print_debug d |> print_endline;;
+val print_doc : int -> unit = <fun>
+
+# print_doc 19;;
+let q      = 7 * 6,│
+    ex_ans = 42,   │
+    ans    = get(),│
+in                 │
+  validate         │
+is_tainted: false
+cost: (0 4 0 2)
+- : unit = ()
+
+# print_doc 18;;
+let q   = 7 * 6,  │
+    ex_ans = 42,  │
+    ans = get(),  │
+in                │
+  validate        │
+is_tainted: false
+cost: (0 4 3 1)
+- : unit = ()
+
+# print_doc 15;;
+let q = 7 * 6, │
+    ex_ans = 42│,
+    ans = get()│,
+in             │
+  validate     │
+is_tainted: false
+cost: (2 4 7 0)
+- : unit = ()
+      ]} *)
 
   (** {2 Failure document} *)
 
@@ -254,49 +395,11 @@ CrossCode
       {[
 # pretty_print (text "Sea of Stars" ^^ fail) |> print_endline;;
 Exception: Failure "fails to render".
+
 # pretty_print ((text "Sea of Stars" ^^ fail) <|> text "Hades") |> print_endline;;
 Hades
 - : unit = ()
       ]} *)
-
-  (** {2 Pretty printing functions} *)
-
-  val print : ?init_c:int -> doc -> Util.info
-  (** [print d] prints the document [d] to an [info] record.
-      The optional [~init_c] can be used to indicate that the printing begins
-      at a non-zero column position. *)
-
-  val pretty_print : ?init_c:int -> doc -> string
-  (** [pretty_print d] prints the document [d] to a string.
-      The optional [~init_c] can be used to indicate that the printing begins
-      at a non-zero column position.
-
-      {5 Examples:}
-      {[
-# print_string "Languages: ";
-  pretty_print (align (text "Racket" ^^ nl ^^
-                       text "OCaml" ^^ nl ^^
-                       text "Pyret")) |> print_endline;;
-Languages: Racket
-OCaml
-Pyret
-- : unit = ()
-# print_string "Languages: ";
-  pretty_print ~init_c:11
-               (align (text "Racket" ^^ nl ^^
-                       text "OCaml" ^^ nl ^^
-                       text "Pyret")) |> print_endline;;
-Languages: Racket
-           OCaml
-           Pyret
-- : unit = ()
-      ]} *)
-
-  val pretty_print_debug : ?init_c:int -> doc -> string
-  (** [pretty_print_debug] is the same as
-      {{!Signature.PrinterT.pretty_print}[pretty_print]}, but it contains
-      extra debugging information, customizable via
-      {{!Signature.CostFactory.format_debug}[format_debug]} *)
 
 
   (** {2 Other derived combinators} *)
@@ -311,13 +414,16 @@ Languages: Racket
   |> print_endline;;
 Fire Emblem Awakening
 - : unit = ()
+
 # pretty_print (flatten (text "Mario + Rabbids" ^^ break ^^ text "Kingdom Battle"))
   |> print_endline;;
 Mario + RabbidsKingdom Battle
 - : unit = ()
+
 # pretty_print (flatten (text "XCOM 2" ^^ hard_nl ^^ text "War of the Chosen"))
   |> print_endline;;
 Exception: Failure "fails to render".
+
 # pretty_print (flatten (text "Tactics Ogre" ^^
                          newline (Some ": ") ^^
                          text "Reborn"))

@@ -1,6 +1,7 @@
 ## 0.3 (2024-02-10)
 
 * Add `pretty_print_debug`
+* Add the `two_columns` construct
 
 ## 0.2 (2023-11-28)
 

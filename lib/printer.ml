@@ -44,6 +44,9 @@ module Core (C : Signature.CostFactory) = struct
     | Align of doc
     | Reset of doc
     | Cost of C.t * doc
+    | Context of (int -> int -> doc)
+    (* invariant: the list length >= 2 *)
+    | TwoColumns of (doc * doc) list
     | Fail
 
   type cost = C.t
@@ -137,6 +140,13 @@ module Core (C : Signature.CostFactory) = struct
         nl_cnt = d.nl_cnt;
         table = init_table memo_w }
 
+  let context f nl_cnt =
+    { dc = Context f;
+      id = next_id ();
+      memo_w = 0;
+      nl_cnt;
+      table = init_table 0 }
+
   let (<|>) d1 d2 =
     if d1 == fail then d2
     else if d2 == fail then d1
@@ -147,6 +157,40 @@ module Core (C : Signature.CostFactory) = struct
         memo_w;
         nl_cnt = max d1.nl_cnt d2.nl_cnt;
         table = init_table memo_w }
+
+  let empty = text ""
+
+  let fold_doc f ds =
+    match ds with
+    | [] -> empty
+    | x :: xs -> List.fold_left f x xs
+
+  let hard_nl = newline None
+
+  let (<$>) d1 d2 = d1 ^^ hard_nl ^^ d2
+
+  let vcat = fold_doc (<$>)
+
+  let two_columns (ds : (doc * doc) list) =
+    match ds with
+    | [] -> empty
+    | [(dl, dr)] -> align (dl ^^ dr)
+    | _ ->
+      let any_fail =
+        List.exists (fun (d1, d2) -> d1 == fail || d2 == fail) ds in
+      if any_fail then
+        fail
+      else
+        let nl_cnt =
+          List.fold_left
+            (fun acc (d1, d2) -> acc + d1.nl_cnt + d2.nl_cnt)
+            0
+            ds in
+        { dc = TwoColumns ds;
+          id = next_id ();
+          memo_w = 0;
+          nl_cnt;
+          table = init_table 0 }
 
   let merge (ml1 : measure_set) (ml2 : measure_set): measure_set =
     match (ml1, ml2) with
@@ -246,6 +290,46 @@ module Core (C : Signature.CostFactory) = struct
           (match self d c i with
            | MeasureSet ms -> MeasureSet (List.map add_cost ms)
            | Tainted mt -> Tainted (fun () -> add_cost (mt ())))
+        | Context f -> self (f c i) c i
+        | TwoColumns ds ->
+          let left_ms = List.map (fun (d1, _) -> self d1 c c) ds in
+          let left_any_tainted = List.exists
+              (fun ms ->
+                 match ms with
+                 | Tainted _ -> true
+                 | _ -> false)
+              left_ms in
+          let get_positions () =
+            let left_lasts = List.map (fun ms ->
+                match ms with
+                | MeasureSet ms -> List.map (fun m -> m.last) ms
+                | Tainted mt -> let m = mt () in [m.last]) left_ms in
+            List.sort_uniq compare (List.flatten left_lasts)
+          in
+          let rec loop_limit (rank : int) (posns : int list) =
+            match posns with
+            | [] -> fail
+            | current_limit :: rest ->
+              let trans_ds = List.map (fun (d1, d2) ->
+                  d1 ^^
+                  context (fun c_in _ ->
+                      if current_limit >= c_in then
+                        text (String.make (current_limit - c_in) ' ')
+                      else
+                        cost (C.two_columns_overflow (c_in - current_limit)) empty) 0 ^^
+                  d2) ds
+              in
+              cost (C.two_columns_bias rank) (vcat trans_ds) <|>
+              loop_limit (rank + 1) rest
+          in
+          let get_measure_set () =
+            let d = get_positions () |> loop_limit 0 |> align in
+            self d c i
+          in
+          if left_any_tainted then
+            Tainted (fun () -> get_measure_set () |> choose_one)
+          else
+            get_measure_set ()
         | Fail -> failwith "fails to render"
       in
       let exceeds = match dc with
@@ -283,12 +367,10 @@ module Make (C : Signature.CostFactory): (Signature.PrinterT with type cost = C.
   let lparen = text "("
   let rparen = text ")"
   let dquote = text "\""
-  let empty = text ""
   let space = text " "
 
   let nl = newline (Some " ")
   let break = newline (Some "")
-  let hard_nl = newline None
 
   let flatten : doc -> doc =
     let cache = Hashtbl.create 1000 in
@@ -312,24 +394,20 @@ module Make (C : Signature.CostFactory): (Signature.PrinterT with type cost = C.
           | Cost (c, ({ id = id; _ } as d)) ->
             let { id = idp; _ } as dp = flatten d in
             if idp = id then d else cost c dp
+          (* There are at least two lines, so it can't be flattened *)
+          | TwoColumns _ -> fail
+          | Context _ -> failwith "unreachable"
         in
         Hashtbl.add cache id out;
         out
     in flatten
 
   let (<+>) d1 d2 = d1 ^^ align d2
-  let (<$>) d1 d2 = d1 ^^ hard_nl ^^ d2
   let group d = d <|> (flatten d)
 
   let (<->) x y = (flatten x) <+> y
 
-  let fold_doc f ds =
-    match ds with
-    | [] -> empty
-    | x :: xs -> List.fold_left f x xs
-
   let hcat = fold_doc (<->)
-  let vcat = fold_doc (<$>)
 
   let pretty_print ?(init_c = 0) (d : doc): string =
     (print ~init_c:init_c d).out
@@ -350,7 +428,7 @@ end
 (* $MDX part-begin=default_cost_factory *)
 let default_cost_factory ~page_width ?computation_width () =
   (module struct
-    type t = int * int
+    type t = int * int * int * int
     let limit = match computation_width with
       | None -> (float_of_int page_width) *. 1.2 |> int_of_float
       | Some computation_width -> computation_width
@@ -361,19 +439,21 @@ let default_cost_factory ~page_width ?computation_width () =
         let maxwc = max page_width pos in
         let a = maxwc - page_width in
         let b = stop - maxwc in
-        (b * (2*a + b), 0)
+        (b * (2*a + b), 0, 0, 0)
       else
-        (0, 0)
+        (0, 0, 0, 0)
 
-    let newline _ = (0, 1)
+    let newline _ = (0, 1, 0, 0)
 
-    let combine (o1, h1) (o2, h2) =
-      (o1 + o2, h1 + h2)
+    let combine (o1, h1, ot1, bt1) (o2, h2, ot2, bt2) =
+      (o1 + o2, h1 + h2, ot1 + ot2, bt1 + bt2)
 
-    let le (o1, h1) (o2, h2) =
-      if o1 = o2 then h1 <= h2 else o1 < o2
+    let le c1 c2 = c1 < c2
 
-    let debug (o, h) = Printf.sprintf "(%d %d)" o h
+    let two_columns_overflow w = (0, 0, w, 0)
+    let two_columns_bias w = (0, 0, 0, w)
+
+    let debug (o, h, ot, bt) = Printf.sprintf "(%d %d %d %d)" o h ot bt
 
     let format_debug (result : Util.info) =
       let lines = String.split_on_char '\n' result.out in
@@ -392,5 +472,5 @@ let default_cost_factory ~page_width ?computation_width () =
         result.is_tainted
         result.cost
 
-  end: Signature.CostFactory with type t = int * int)
+  end: Signature.CostFactory with type t = int * int * int * int)
 (* $MDX part-end *)
