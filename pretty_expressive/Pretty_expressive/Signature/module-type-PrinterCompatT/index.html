@@ -1,12 +1,45 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml"><head><title>PrinterCompatT (pretty_expressive.Pretty_expressive.Signature.PrinterCompatT)</title><link rel="stylesheet" href="../../../../odoc.support/odoc.css"/><meta charset="utf-8"/><meta name="generator" content="odoc 2.2.1"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><script src="../../../../odoc.support/highlight.pack.js"></script><script>hljs.initHighlightingOnLoad();</script></head><body class="odoc"><nav class="odoc-nav"><a href="../index.html">Up</a> – <a href="../../../index.html">pretty_expressive</a> &#x00BB; <a href="../../index.html">Pretty_expressive</a> &#x00BB; <a href="../index.html">Signature</a> &#x00BB; PrinterCompatT</nav><header class="odoc-preamble"><h1>Module type <code><span>Signature.PrinterCompatT</span></code></h1></header><div class="odoc-content"><div class="odoc-include"><details><summary class="spec include"><code><span><span class="keyword">include</span> <a href="../module-type-PrinterT/index.html">PrinterT</a></span></code></summary><div class="odoc-spec"><div class="spec type anchored" id="type-doc"><a href="#type-doc" class="anchor"></a><code><span><span class="keyword">type</span> doc</span></code></div><div class="spec-doc"><p>The <code>doc</code> type</p></div></div><div class="odoc-spec"><div class="spec type anchored" id="type-cost"><a href="#type-cost" class="anchor"></a><code><span><span class="keyword">type</span> cost</span></code></div><div class="spec-doc"><p>The <code>cost</code> type</p></div></div><p>Examples in the rest of this section assume that the program begins with</p><pre class="language-ocaml"><code>open Pretty_expressive
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>PrinterCompatT (pretty_expressive.Pretty_expressive.Signature.PrinterCompatT)</title><link rel="stylesheet" href="../../../../odoc.support/odoc.css"/><meta charset="utf-8"/><meta name="generator" content="odoc 2.3.1"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><script src="../../../../odoc.support/highlight.pack.js"></script><script>hljs.initHighlightingOnLoad();</script></head><body class="odoc"><nav class="odoc-nav"><a href="../index.html">Up</a> – <a href="../../../index.html">pretty_expressive</a> &#x00BB; <a href="../../index.html">Pretty_expressive</a> &#x00BB; <a href="../index.html">Signature</a> &#x00BB; PrinterCompatT</nav><header class="odoc-preamble"><h1>Module type <code><span>Signature.PrinterCompatT</span></code></h1></header><div class="odoc-content"><div class="odoc-include"><details><summary class="spec include"><code><span><span class="keyword">include</span> <a href="../module-type-PrinterT/index.html">PrinterT</a></span></code></summary><div class="odoc-spec"><div class="spec type anchored" id="type-doc"><a href="#type-doc" class="anchor"></a><code><span><span class="keyword">type</span> doc</span></code></div><div class="spec-doc"><p>The <code>doc</code> type</p></div></div><div class="odoc-spec"><div class="spec type anchored" id="type-cost"><a href="#type-cost" class="anchor"></a><code><span><span class="keyword">type</span> cost</span></code></div><div class="spec-doc"><p>The <code>cost</code> type</p></div></div><p>Examples in the rest of this section assume that the program begins with</p><pre class="language-ocaml"><code>open Pretty_expressive
 
 let cf = Printer.default_cost_factory ~page_width:10 ()
 module P = Printer.Make (val cf)
-open P</code></pre><h3 id="text-document"><a href="#text-document" class="anchor"></a>Text document</h3><div class="odoc-spec"><div class="spec value anchored" id="val-text"><a href="#val-text" class="anchor"></a><code><span><span class="keyword">val</span> text : <span>string <span class="arrow">&#45;&gt;</span></span> <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p><code>text s</code> is a document for textual content <code>s</code>; <code>s</code> must not contain a newline.</p><p>Examples:</p><pre class="language-ocaml"><code># pretty_print (text &quot;Portal&quot;) |&gt; print_endline;;
+open P</code></pre><h3 id="pretty-printing-functions"><a href="#pretty-printing-functions" class="anchor"></a>Pretty printing functions</h3><div class="odoc-spec"><div class="spec value anchored" id="val-pretty_print_info"><a href="#val-pretty_print_info" class="anchor"></a><code><span><span class="keyword">val</span> pretty_print_info : <span><span class="optlabel">?init_c</span>:int <span class="arrow">&#45;&gt;</span></span> <span><a href="../index.html#type-renderer">renderer</a> <span class="arrow">&#45;&gt;</span></span> <span><a href="#type-doc">doc</a> <span class="arrow">&#45;&gt;</span></span> <span><a href="#type-cost">cost</a> <a href="../../Util/index.html#type-info">Util.info</a></span></span></code></div><div class="spec-doc"><p><code>pretty_print_info renderer d</code> prints the document <code>d</code> by repeatedly calling <code>renderer</code> and outputs the debugging information as an <code>info</code> record.The optional <code>~init_c</code> can be used to indicate that the printing begins at a non-zero column position.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-pretty_format_info"><a href="#val-pretty_format_info" class="anchor"></a><code><span><span class="keyword">val</span> pretty_format_info : <span><span class="optlabel">?init_c</span>:int <span class="arrow">&#45;&gt;</span></span> <span><a href="#type-doc">doc</a> <span class="arrow">&#45;&gt;</span></span> string * <span><a href="#type-cost">cost</a> <a href="../../Util/index.html#type-info">Util.info</a></span></span></code></div><div class="spec-doc"><p><code>pretty_format_info</code> is similar to <a href="../../Printer/Make/index.html#val-pretty_print_info" title="Printer.Make.pretty_print_info"><code>pretty_print_info</code></a>, but it prints to a string instead of a renderer.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-pretty_print"><a href="#val-pretty_print" class="anchor"></a><code><span><span class="keyword">val</span> pretty_print : <span><span class="optlabel">?init_c</span>:int <span class="arrow">&#45;&gt;</span></span> <span><a href="../index.html#type-renderer">renderer</a> <span class="arrow">&#45;&gt;</span></span> <span><a href="#type-doc">doc</a> <span class="arrow">&#45;&gt;</span></span> unit</span></code></div><div class="spec-doc"><p><code>pretty_print d</code> is similar to <a href="../../Printer/Make/index.html#val-pretty_print_info" title="Printer.Make.pretty_print_info"><code>pretty_print_info</code></a> without debugging information.</p><p>Examples:</p><pre class="language-ocaml"><code># print_string &quot;Languages: &quot;;
+  pretty_print
+    print_string
+    (align (text &quot;Racket&quot; ^^ nl ^^
+            text &quot;OCaml&quot; ^^ nl ^^
+            text &quot;Pyret&quot;));;
+Languages: Racket
+OCaml
+Pyret
+- : unit = ()
+
+# print_string &quot;Languages: &quot;;
+  pretty_print
+    ~init_c:11
+    print_string
+    (align (text &quot;Racket&quot; ^^ nl ^^
+            text &quot;OCaml&quot; ^^ nl ^^
+            text &quot;Pyret&quot;));;
+Languages: Racket
+           OCaml
+           Pyret
+- : unit = ()</code></pre></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-pretty_format"><a href="#val-pretty_format" class="anchor"></a><code><span><span class="keyword">val</span> pretty_format : <span><span class="optlabel">?init_c</span>:int <span class="arrow">&#45;&gt;</span></span> <span><a href="#type-doc">doc</a> <span class="arrow">&#45;&gt;</span></span> string</span></code></div><div class="spec-doc"><p><code>pretty_format</code> is similar to <a href="../../Printer/Make/index.html#val-pretty_format" title="Printer.Make.pretty_format"><code>pretty_format</code></a>, without debugging information.</p><p>Examples:</p><pre class="language-ocaml"><code># pretty_format (text &quot;Hello World&quot; ^^ nl ^^
+                 text &quot;Hi All!&quot;) |&gt; print_endline;;
+Hello World
+Hi All!
+- : unit = ()</code></pre></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-pretty_format_debug"><a href="#val-pretty_format_debug" class="anchor"></a><code><span><span class="keyword">val</span> pretty_format_debug : <span><span class="optlabel">?init_c</span>:int <span class="arrow">&#45;&gt;</span></span> <span><a href="#type-doc">doc</a> <span class="arrow">&#45;&gt;</span></span> string</span></code></div><div class="spec-doc"><p><code>pretty_format_debug</code> is similar to <a href="../../Printer/Make/index.html#val-pretty_format_info" title="Printer.Make.pretty_format_info"><code>pretty_format_info</code></a>, but the debugging information is included as a part of the output string. The format is customizable via <a href="../module-type-CostFactory/index.html#val-debug_format" title="Signature.CostFactory.debug_format"><code>debug_format</code></a>.</p><p>Examples:</p><pre class="language-ocaml"><code># pretty_format_debug (text &quot;Hello World&quot; ^^ nl ^^
+                       text &quot;Hi All!&quot;) |&gt; print_endline;;
+1234567890
+Hello Worl│d
+Hi All!   │
+
+is_tainted: false
+cost: (1 0 1 0)
+- : unit = ()</code></pre></div></div><h3 id="text-document"><a href="#text-document" class="anchor"></a>Text document</h3><div class="odoc-spec"><div class="spec value anchored" id="val-text"><a href="#val-text" class="anchor"></a><code><span><span class="keyword">val</span> text : <span>string <span class="arrow">&#45;&gt;</span></span> <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p><code>text s</code> is a document for textual content <code>s</code>; <code>s</code> must not contain a newline.</p><p>Examples:</p><pre class="language-ocaml"><code># pretty_print print_string (text &quot;Portal&quot;);;
 Portal
 - : unit = ()</code></pre></div></div><h3 id="newline-documents"><a href="#newline-documents" class="anchor"></a>Newline documents</h3><div class="odoc-spec"><div class="spec value anchored" id="val-newline"><a href="#val-newline" class="anchor"></a><code><span><span class="keyword">val</span> newline : <span><span>string option</span> <span class="arrow">&#45;&gt;</span></span> <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p><code>newline s</code> is a document for a newline. When <code>s</code> is <code>None</code>, it <a href="#val-flatten"><code>flatten</code></a>s to <a href="#val-fail"><code>fail</code></a>. When <code>s</code> is not <code>None</code>, it <a href="#val-flatten"><code>flatten</code></a>s to <code>text s</code>. See <a href="#val-flatten"><code>flatten</code></a> for more details.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-nl"><a href="#val-nl" class="anchor"></a><code><span><span class="keyword">val</span> nl : <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p><code>nl</code> is a document for a newline that <a href="#val-flatten"><code>flatten</code></a>s to a single space.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-break"><a href="#val-break" class="anchor"></a><code><span><span class="keyword">val</span> break : <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p><code>break</code> is a document for a newline that <a href="#val-flatten"><code>flatten</code></a>s to an empty string.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-hard_nl"><a href="#val-hard_nl" class="anchor"></a><code><span><span class="keyword">val</span> hard_nl : <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p><code>hard_nl</code> is a document for a newline that <a href="#val-fail"><code>fail</code></a>s to <a href="#val-flatten"><code>flatten</code></a>.</p></div></div><h3 id="concatenation-document"><a href="#concatenation-document" class="anchor"></a>Concatenation document</h3><div class="odoc-spec"><div class="spec value anchored" id="val-(^^)"><a href="#val-(^^)" class="anchor"></a><code><span><span class="keyword">val</span> (^^) : <span><a href="#type-doc">doc</a> <span class="arrow">&#45;&gt;</span></span> <span><a href="#type-doc">doc</a> <span class="arrow">&#45;&gt;</span></span> <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p><code>a ^^ b</code> is a document for concatenation of documents <code>a</code> and <code>b</code> <i>without</i> alignment. In the paper, the symbol <code>&lt;&gt;</code> is used for the operator. We use <code>^^</code> in the OCaml implementation instead to avoid shadowing the built-in not equal operator. This operator also known as the <i>unaligned concatenation</i>, which is widely used in traditional pretty printers.</p><p>See also <a href="../../Printer/MakeCompat/index.html"><code>Printer.MakeCompat</code></a> for a functor that provides this operator under the symbol <code>&lt;&gt;</code>.</p><p>Examples:</p><pre class="language-ocaml"><code>let left_doc = text &quot;Splatoon&quot; ^^ nl ^^ text &quot;Nier&quot;;;
-let right_doc = text &quot;Automata&quot; ^^ nl ^^ text &quot;FEZ&quot;;;</code></pre><pre class="language-ocaml"><code># pretty_print (left_doc ^^ right_doc) |&gt; print_endline;;
+let right_doc = text &quot;Automata&quot; ^^ nl ^^ text &quot;FEZ&quot;;;</code></pre><pre class="language-ocaml"><code># pretty_print print_string (left_doc ^^ right_doc);;
 Splatoon
 NierAutomata
 FEZ
@@ -14,25 +47,31 @@ FEZ
     let cf = Printer.default_cost_factory ~page_width:w () in
     let module P = Printer.Make (val cf) in
     let open P in
-    pretty_print (text &quot;Chrono Trigger&quot; &lt;|&gt;
-                 (text &quot;Octopath&quot; ^^ nl ^^ text &quot;Traveler&quot;)) |&gt; print_endline;;
+    pretty_print
+      print_string
+      (text &quot;Chrono Trigger&quot; &lt;|&gt;
+       (text &quot;Octopath&quot; ^^ nl ^^ text &quot;Traveler&quot;));;
 val print_doc : int -&gt; unit = &lt;fun&gt;
+
 # print_doc 10;;
 Octopath
 Traveler
 - : unit = ()
+
 # print_doc 15;;
 Chrono Trigger
-- : unit = ()</code></pre><p>See also <a href="../../../index.html#bestpractice">Best Practice for Document Construction</a></p></div></div><h3 id="indentation-documents"><a href="#indentation-documents" class="anchor"></a>Indentation documents</h3><div class="odoc-spec"><div class="spec value anchored" id="val-align"><a href="#val-align" class="anchor"></a><code><span><span class="keyword">val</span> align : <span><a href="#type-doc">doc</a> <span class="arrow">&#45;&gt;</span></span> <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p><code>align d</code> is a document that aligns <code>d</code> at the column position.</p><p>Examples:</p><pre class="language-ocaml"><code># pretty_print (left_doc ^^ align right_doc) |&gt; print_endline;;
+- : unit = ()</code></pre><p>See also <a href="../../../index.html#bestpractice" title="bestpractice">Best Practice for Document Construction</a></p></div></div><h3 id="indentation-documents"><a href="#indentation-documents" class="anchor"></a>Indentation documents</h3><div class="odoc-spec"><div class="spec value anchored" id="val-align"><a href="#val-align" class="anchor"></a><code><span><span class="keyword">val</span> align : <span><a href="#type-doc">doc</a> <span class="arrow">&#45;&gt;</span></span> <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p><code>align d</code> is a document that aligns <code>d</code> at the column position.</p><p>Examples:</p><pre class="language-ocaml"><code># pretty_print print_string (left_doc ^^ align right_doc);;
 Splatoon
 NierAutomata
     FEZ
-- : unit = ()</code></pre><p>The aligned concatenation operator <a href="#val-(&lt;+&gt;)"><code>(&lt;+&gt;)</code></a> is a derived combinator that composes <a href="#val-(^^)"><code>(^^)</code></a> and <code>align</code> together. It is especially useful for languages that uses the the box model for code styling.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-nest"><a href="#val-nest" class="anchor"></a><code><span><span class="keyword">val</span> nest : <span>int <span class="arrow">&#45;&gt;</span></span> <span><a href="#type-doc">doc</a> <span class="arrow">&#45;&gt;</span></span> <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p><code>nest n d</code> is a document that increments the indentation level by <code>n</code> when rendering <code>d</code>.</p><p>Examples:</p><pre class="language-ocaml"><code># pretty_print (text &quot;when 1 = 2:&quot; ^^ nest 4 (nl ^^ text &quot;print 'oh no!'&quot;))
-  |&gt; print_endline;;
+- : unit = ()</code></pre><p>The aligned concatenation operator <a href="#val-(&lt;+&gt;)"><code>(&lt;+&gt;)</code></a> is a derived combinator that composes <a href="#val-(^^)"><code>(^^)</code></a> and <code>align</code> together. It is especially useful for languages that uses the the box model for code styling.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-nest"><a href="#val-nest" class="anchor"></a><code><span><span class="keyword">val</span> nest : <span>int <span class="arrow">&#45;&gt;</span></span> <span><a href="#type-doc">doc</a> <span class="arrow">&#45;&gt;</span></span> <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p><code>nest n d</code> is a document that increments the indentation level by <code>n</code> when rendering <code>d</code>.</p><p>Examples:</p><pre class="language-ocaml"><code># pretty_print
+    print_string
+    (text &quot;when 1 = 2:&quot; ^^ nest 4 (nl ^^ text &quot;print 'oh no!'&quot;));;
 when 1 = 2:
     print 'oh no!'
-- : unit = ()</code></pre><p>The increment does not affect content on the current line. In the following example, <code>when 1 = 2:</code> is not further indented.</p><pre class="language-ocaml"><code># pretty_print (nest 4 (text &quot;when 1 = 2:&quot; ^^ nl ^^ text &quot;print 'oh no!'&quot;))
-  |&gt; print_endline;;
+- : unit = ()</code></pre><p>The increment does not affect content on the current line. In the following example, <code>when 1 = 2:</code> is not further indented.</p><pre class="language-ocaml"><code># pretty_print
+    print_string
+    (nest 4 (text &quot;when 1 = 2:&quot; ^^ nl ^^ text &quot;print 'oh no!'&quot;));;
 when 1 = 2:
     print 'oh no!'
 - : unit = ()</code></pre></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-reset"><a href="#val-reset" class="anchor"></a><code><span><span class="keyword">val</span> reset : <span><a href="#type-doc">doc</a> <span class="arrow">&#45;&gt;</span></span> <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p><code>reset d</code> is a document that resets indentation level to 0 in <code>d</code>. This is especially useful for formatting multi-line strings and multi-line comments.</p><p>Examples:</p><pre class="language-ocaml"><code># let s_d = reset (text &quot;#&lt;&lt;EOF&quot; ^^ nl ^^
@@ -40,55 +79,151 @@ when 1 = 2:
                    text &quot;Baba is you&quot; ^^ nl ^^
                    text &quot;EOF&quot;);;
 val s_d : doc = &lt;abstr&gt;
-# pretty_print (text &quot;when 1 = 2:&quot; ^^ nest 4 (nl ^^ text &quot;print &quot; ^^ s_d))
-  |&gt; print_endline;;
+
+# pretty_print
+    print_string
+    (text &quot;when 1 = 2:&quot; ^^ nest 4 (nl ^^ text &quot;print &quot; ^^ s_d));;
 when 1 = 2:
     print #&lt;&lt;EOF
 Zelda
 Baba is you
 EOF
-- : unit = ()</code></pre></div></div><h3 id="cost-document"><a href="#cost-document" class="anchor"></a>Cost document</h3><div class="odoc-spec"><div class="spec value anchored" id="val-cost"><a href="#val-cost" class="anchor"></a><code><span><span class="keyword">val</span> cost : <span><a href="#type-cost">cost</a> <span class="arrow">&#45;&gt;</span></span> <span><a href="#type-doc">doc</a> <span class="arrow">&#45;&gt;</span></span> <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p><code>cost c d</code> is a document that artificially adds cost <code>c</code> to <code>d</code>.</p><p>In the below example, we artificially adds overflow to <code>text &quot;CrossCode&quot;</code>, making it a non-optimal choice, even though <code>text &quot;CrossCode&quot;</code> would have been the optimal choice had <code>cost</code> not been used.</p><p>Examples:</p><pre class="language-ocaml"><code># pretty_print (cost (1, 0) (text &quot;CrossCode&quot;) &lt;|&gt;
-                (text &quot;Final&quot; ^^ nl ^^ text &quot;Fantasy&quot;)) |&gt; print_endline;;
-Final
-Fantasy
+- : unit = ()</code></pre></div></div><h3 id="cost-document"><a href="#cost-document" class="anchor"></a>Cost document</h3><div class="odoc-spec"><div class="spec value anchored" id="val-cost"><a href="#val-cost" class="anchor"></a><code><span><span class="keyword">val</span> cost : <span><a href="#type-cost">cost</a> <span class="arrow">&#45;&gt;</span></span> <span><a href="#type-doc">doc</a> <span class="arrow">&#45;&gt;</span></span> <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p><code>cost c d</code> is a document that artificially adds cost <code>c</code> to <code>d</code>.</p><p>In the below example, we artificially adds overflow to <code>text &quot;CrossCode&quot;</code>, making it a non-optimal choice, even though <code>text &quot;CrossCode&quot;</code> would have been the optimal choice had <code>cost</code> not been used.</p><p>Examples:</p><pre class="language-ocaml"><code># pretty_format_debug (cost (1, 0, 0, 0) (text &quot;CrossCode&quot;) &lt;|&gt;
+                      (text &quot;Final&quot; ^^ nl ^^ text &quot;Fantasy&quot;)) |&gt; print_endline;;
+1234567890
+Final     │
+Fantasy   │
+
+is_tainted: false
+cost: (0 0 1 0)
 - : unit = ()
-# pretty_print (text &quot;CrossCode&quot; &lt;|&gt;
-                (text &quot;Final&quot; ^^ nl ^^ text &quot;Fantasy&quot;)) |&gt; print_endline;;
-CrossCode
-- : unit = ()</code></pre><p><code>cost</code> is especially useful in combination with <a href="../../../index.html#factory">a custom cost factory</a>. See the section for further details.</p></div></div><h3 id="failure-document"><a href="#failure-document" class="anchor"></a>Failure document</h3><div class="odoc-spec"><div class="spec value anchored" id="val-fail"><a href="#val-fail" class="anchor"></a><code><span><span class="keyword">val</span> fail : <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p>A document that always fails. It interacts with <a href="#val-(&lt;|&gt;)"><code>(&lt;|&gt;)</code></a>: failing branches are pruned away.</p><p>Examples:</p><pre class="language-ocaml"><code># pretty_print (text &quot;Sea of Stars&quot; ^^ fail) |&gt; print_endline;;
+
+# pretty_format_debug (text &quot;CrossCode&quot; &lt;|&gt;
+                      (text &quot;Final&quot; ^^ nl ^^ text &quot;Fantasy&quot;)) |&gt; print_endline;;
+1234567890
+CrossCode │
+
+is_tainted: false
+cost: (0 0 0 0)
+- : unit = ()</code></pre><p><code>cost</code> is especially useful in combination with <a href="../../../index.html#factory" title="factory">a custom cost factory</a>. See the section for further details.</p></div></div><h3 id="filler-documents"><a href="#filler-documents" class="anchor"></a>Filler documents</h3><div class="odoc-spec"><div class="spec value anchored" id="val-two_columns"><a href="#val-two_columns" class="anchor"></a><code><span><span class="keyword">val</span> two_columns : <span><span><span>(<a href="#type-doc">doc</a> * <a href="#type-doc">doc</a>)</span> list</span> <span class="arrow">&#45;&gt;</span></span> <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p><code>two_columns ds</code> is a document that lays out the documents in <code>ds</code> in two columns.</p><p>Note that this is <b>not quite</b> a table layout, because in each row, the right column will start at the same line as the last line of the left column.</p><p>Also note that some rows <i>may</i> overflow the column separator (e.g. in order to avoid the global overflow over the page width limit). The function <a href="../module-type-CostFactory/index.html#val-two_columns_overflow" title="Signature.CostFactory.two_columns_overflow"><code>two_columns_overflow</code></a> can be used to customize this behavior.</p><p>The indentation level is set to the initial current column position (in the same manner as <a href="../../Printer/Make/index.html#val-align" title="Printer.Make.align"><code>align</code></a>) so that on entering a new line, the left column of the next row starts at the right position.</p><p>Unlike <a href="https://hackage.haskell.org/package/wl-pprint-1.2.1/docs/Text-PrettyPrint-Leijen.html#v:fill"><code>fill</code></a> or <a href="https://hackage.haskell.org/package/wl-pprint-1.2.1/docs/Text-PrettyPrint-Leijen.html#v:fillBreak"><code>fillBreak</code></a> from Wadler/Leijen's pretty printer, which requires users to specify a fixed position of the column separator, <code>two_columns</code> will find the position automatically, and will find the leftmost one.</p><p>Examples:</p><p>Following example is taken from <a href="https://hackage.haskell.org/package/wl-pprint-1.2.1/docs/Text-PrettyPrint-Leijen.html">https://hackage.haskell.org/package/wl-pprint-1.2.1/docs/Text-PrettyPrint-Leijen.html</a></p><pre class="language-ocaml"><code># let types = [ (&quot;empty&quot;,     &quot;Doc&quot;) ;
+                (&quot;nest&quot;,      &quot;Int -&gt; Doc -&gt; Doc&quot;) ;
+                (&quot;linebreak&quot;, &quot;Doc&quot;) ];;
+val types : (string * string) list =
+  [(&quot;empty&quot;, &quot;Doc&quot;); (&quot;nest&quot;, &quot;Int -&gt; Doc -&gt; Doc&quot;); (&quot;linebreak&quot;, &quot;Doc&quot;)]
+
+# let print_doc w =
+    let cf = Printer.default_cost_factory ~page_width:w () in
+    let module P = Printer.Make (val cf) in
+    let open P in
+    let d = text &quot;let &quot; ^^
+            two_columns (List.map
+                           (fun (n, t) -&gt;
+                              (text n, text &quot; :: &quot; ^^ text t))
+                           types) in
+    pretty_format_debug d |&gt; print_endline;;
+val print_doc : int -&gt; unit = &lt;fun&gt;
+
+# print_doc 34;;
+1234567890123456789012345678901234
+let empty     :: Doc              │
+    nest      :: Int -&gt; Doc -&gt; Doc│
+    linebreak :: Doc              │
+
+is_tainted: false
+cost: (0 0 2 2)
+- : unit = ()
+
+# print_doc 33;;
+123456789012345678901234567890123
+let empty :: Doc                 │
+    nest  :: Int -&gt; Doc -&gt; Doc   │
+    linebreak :: Doc             │
+
+is_tainted: false
+cost: (0 4 2 1)
+- : unit = ()
+
+# print_doc 28;;
+1234567890123456789012345678
+let empty :: Doc            │
+    nest :: Int -&gt; Doc -&gt; Do│c
+    linebreak :: Doc        │
+
+is_tainted: false
+cost: (1 6 2 0)
+- : unit = ()
+
+# let print_doc_nl w =
+    let cf = Printer.default_cost_factory ~page_width:w () in
+    let module P = Printer.Make (val cf) in
+    let open P in
+    let d = text &quot;let &quot; ^^
+            two_columns (List.map
+                           (fun (n, t) -&gt;
+                              (text n ^^ (nl &lt;|&gt; empty),
+                               text &quot; :: &quot; ^^ text t))
+                           types) in
+    pretty_format_debug d |&gt; print_endline;;
+val print_doc_nl : int -&gt; unit = &lt;fun&gt;
+
+# print_doc_nl 34;;
+1234567890123456789012345678901234
+let empty     :: Doc              │
+    nest      :: Int -&gt; Doc -&gt; Doc│
+    linebreak :: Doc              │
+
+is_tainted: false
+cost: (0 0 2 3)
+- : unit = ()
+
+# print_doc_nl 33;;
+123456789012345678901234567890123
+let empty :: Doc                 │
+    nest  :: Int -&gt; Doc -&gt; Doc   │
+    linebreak                    │
+          :: Doc                 │
+
+is_tainted: false
+cost: (0 0 3 2)
+- : unit = ()
+
+# print_doc_nl 28;;
+1234567890123456789012345678
+let empty                   │
+     :: Doc                 │
+    nest                    │
+     :: Int -&gt; Doc -&gt; Doc   │
+    linebreak               │
+     :: Doc                 │
+
+is_tainted: false
+cost: (0 0 5 0)
+- : unit = ()</code></pre></div></div><h3 id="failure-document"><a href="#failure-document" class="anchor"></a>Failure document</h3><div class="odoc-spec"><div class="spec value anchored" id="val-fail"><a href="#val-fail" class="anchor"></a><code><span><span class="keyword">val</span> fail : <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p>A document that always fails. It interacts with <a href="#val-(&lt;|&gt;)"><code>(&lt;|&gt;)</code></a>: failing branches are pruned away.</p><p>Examples:</p><pre class="language-ocaml"><code># pretty_print print_string (text &quot;Sea of Stars&quot; ^^ fail);;
 Exception: Failure &quot;fails to render&quot;.
-# pretty_print ((text &quot;Sea of Stars&quot; ^^ fail) &lt;|&gt; text &quot;Hades&quot;) |&gt; print_endline;;
+
+# pretty_print print_string ((text &quot;Sea of Stars&quot; ^^ fail) &lt;|&gt; text &quot;Hades&quot;);;
 Hades
-- : unit = ()</code></pre></div></div><h3 id="pretty-printing-functions"><a href="#pretty-printing-functions" class="anchor"></a>Pretty printing functions</h3><div class="odoc-spec"><div class="spec value anchored" id="val-print"><a href="#val-print" class="anchor"></a><code><span><span class="keyword">val</span> print : <span>?init_c:int <span class="arrow">&#45;&gt;</span></span> <span><a href="#type-doc">doc</a> <span class="arrow">&#45;&gt;</span></span> <a href="../../Util/index.html#type-info">Util.info</a></span></code></div><div class="spec-doc"><p><code>print d</code> prints the document <code>d</code> to an <code>info</code> record. The optional <code>~init_c</code> can be used to indicate that the printing begins at a non-zero column position.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-pretty_print"><a href="#val-pretty_print" class="anchor"></a><code><span><span class="keyword">val</span> pretty_print : <span>?init_c:int <span class="arrow">&#45;&gt;</span></span> <span><a href="#type-doc">doc</a> <span class="arrow">&#45;&gt;</span></span> string</span></code></div><div class="spec-doc"><p><code>pretty_print d</code> prints the document <code>d</code> to a string. The optional <code>~init_c</code> can be used to indicate that the printing begins at a non-zero column position.</p><p>Examples:</p><pre class="language-ocaml"><code># print_string &quot;Languages: &quot;;
-  pretty_print (align (text &quot;Racket&quot; ^^ nl ^^
-                       text &quot;OCaml&quot; ^^ nl ^^
-                       text &quot;Pyret&quot;)) |&gt; print_endline;;
-Languages: Racket
-OCaml
-Pyret
-- : unit = ()
-# print_string &quot;Languages: &quot;;
-  pretty_print ~init_c:11
-               (align (text &quot;Racket&quot; ^^ nl ^^
-                       text &quot;OCaml&quot; ^^ nl ^^
-                       text &quot;Pyret&quot;)) |&gt; print_endline;;
-Languages: Racket
-           OCaml
-           Pyret
-- : unit = ()</code></pre></div></div><h3 id="other-derived-combinators"><a href="#other-derived-combinators" class="anchor"></a>Other derived combinators</h3><div class="odoc-spec"><div class="spec value anchored" id="val-flatten"><a href="#val-flatten" class="anchor"></a><code><span><span class="keyword">val</span> flatten : <span><a href="#type-doc">doc</a> <span class="arrow">&#45;&gt;</span></span> <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p><code>flatten d</code> is a document that replaces newlines and indentation spaces with what's specified in <code>newline</code> when rendering <code>d</code>.</p><p>Examples:</p><pre class="language-ocaml"><code># pretty_print (flatten (text &quot;Fire Emblem&quot; ^^ nl ^^ text &quot;Awakening&quot;))
-  |&gt; print_endline;;
+- : unit = ()</code></pre></div></div><h3 id="other-derived-combinators"><a href="#other-derived-combinators" class="anchor"></a>Other derived combinators</h3><div class="odoc-spec"><div class="spec value anchored" id="val-flatten"><a href="#val-flatten" class="anchor"></a><code><span><span class="keyword">val</span> flatten : <span><a href="#type-doc">doc</a> <span class="arrow">&#45;&gt;</span></span> <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p><code>flatten d</code> is a document that replaces newlines and indentation spaces with what's specified in <code>newline</code> when rendering <code>d</code>.</p><p>Examples:</p><pre class="language-ocaml"><code># pretty_print
+    print_string
+    (flatten (text &quot;Fire Emblem&quot; ^^ nl ^^ text &quot;Awakening&quot;));;
 Fire Emblem Awakening
 - : unit = ()
-# pretty_print (flatten (text &quot;Mario + Rabbids&quot; ^^ break ^^ text &quot;Kingdom Battle&quot;))
-  |&gt; print_endline;;
+
+# pretty_print
+    print_string
+    (flatten (text &quot;Mario + Rabbids&quot; ^^ break ^^ text &quot;Kingdom Battle&quot;));;
 Mario + RabbidsKingdom Battle
 - : unit = ()
-# pretty_print (flatten (text &quot;XCOM 2&quot; ^^ hard_nl ^^ text &quot;War of the Chosen&quot;))
-  |&gt; print_endline;;
+
+# pretty_print
+    print_string
+    (flatten (text &quot;XCOM 2&quot; ^^ hard_nl ^^ text &quot;War of the Chosen&quot;));;
 Exception: Failure &quot;fails to render&quot;.
-# pretty_print (flatten (text &quot;Tactics Ogre&quot; ^^
-                         newline (Some &quot;: &quot;) ^^
-                         text &quot;Reborn&quot;))
-  |&gt; print_endline;;
+
+# pretty_print
+    print_string
+    (flatten (text &quot;Tactics Ogre&quot; ^^
+              newline (Some &quot;: &quot;) ^^
+              text &quot;Reborn&quot;));;
 Tactics Ogre: Reborn
 - : unit = ()</code></pre></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-group"><a href="#val-group" class="anchor"></a><code><span><span class="keyword">val</span> group : <span><a href="#type-doc">doc</a> <span class="arrow">&#45;&gt;</span></span> <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p><code>group d</code> is a shorthand for <code>d &lt;|&gt; flatten d</code>. This combinator is a part of most traditional pretty printers.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-(&lt;+&gt;)"><a href="#val-(&lt;+&gt;)" class="anchor"></a><code><span><span class="keyword">val</span> (&lt;+&gt;) : <span><a href="#type-doc">doc</a> <span class="arrow">&#45;&gt;</span></span> <span><a href="#type-doc">doc</a> <span class="arrow">&#45;&gt;</span></span> <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p><code>a &lt;+&gt; b</code> is a shorthand for <code>a ^^ align b</code>. It is also known as the <i>aligned concatenation</i>.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-(&lt;$&gt;)"><a href="#val-(&lt;$&gt;)" class="anchor"></a><code><span><span class="keyword">val</span> (&lt;$&gt;) : <span><a href="#type-doc">doc</a> <span class="arrow">&#45;&gt;</span></span> <span><a href="#type-doc">doc</a> <span class="arrow">&#45;&gt;</span></span> <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p><code>a &lt;$&gt; b</code> is a shorthand for <code>a ^^ hard_nl ^^ b</code>.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-(&lt;-&gt;)"><a href="#val-(&lt;-&gt;)" class="anchor"></a><code><span><span class="keyword">val</span> (&lt;-&gt;) : <span><a href="#type-doc">doc</a> <span class="arrow">&#45;&gt;</span></span> <span><a href="#type-doc">doc</a> <span class="arrow">&#45;&gt;</span></span> <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p><code>a &lt;-&gt; b</code> is a shorthand for <code>flatten a &lt;+&gt; b</code>. This is especially useful when combined with <a href="#val-hard_nl"><code>hard_nl</code></a> and <a href="#val-(&lt;|&gt;)"><code>(&lt;|&gt;)</code></a>: it can be used when we want to do aligned concatenation, but don't want the left part to have multiple lines.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-fold_doc"><a href="#val-fold_doc" class="anchor"></a><code><span><span class="keyword">val</span> fold_doc : <span><span>(<span><a href="#type-doc">doc</a> <span class="arrow">&#45;&gt;</span></span> <span><a href="#type-doc">doc</a> <span class="arrow">&#45;&gt;</span></span> <a href="#type-doc">doc</a>)</span> <span class="arrow">&#45;&gt;</span></span> <span><span><a href="#type-doc">doc</a> list</span> <span class="arrow">&#45;&gt;</span></span> <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p><code>fold_doc (++) ds</code> is a shorthand for <code>d_1 ++ d_2 ++ ... ++ d_n</code> where <code>d_1 d_2 ... d_n</code> are drawn from <code>ds</code>.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-vcat"><a href="#val-vcat" class="anchor"></a><code><span><span class="keyword">val</span> vcat : <span><span><a href="#type-doc">doc</a> list</span> <span class="arrow">&#45;&gt;</span></span> <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p><code>vcat ds</code> is a shorthand for <code>d_1 &lt;$&gt; d_2 &lt;$&gt; ... &lt;$&gt; d_n</code> where <code>d_1 d_2 ... d_n</code> are drawn from <code>ds</code>.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-hcat"><a href="#val-hcat" class="anchor"></a><code><span><span class="keyword">val</span> hcat : <span><span><a href="#type-doc">doc</a> list</span> <span class="arrow">&#45;&gt;</span></span> <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p><code>vcat ds</code> is a shorthand for <code>d_1 &lt;-&gt; d_2 &lt;-&gt; ... &lt;-&gt; d_n</code> where <code>d_1 d_2 ... d_n</code> are drawn from <code>ds</code>.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-empty"><a href="#val-empty" class="anchor"></a><code><span><span class="keyword">val</span> empty : <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p>Equivalent to <code>text &quot;&quot;</code></p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-space"><a href="#val-space" class="anchor"></a><code><span><span class="keyword">val</span> space : <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p>Equivalent to <code>text &quot; &quot;</code></p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-comma"><a href="#val-comma" class="anchor"></a><code><span><span class="keyword">val</span> comma : <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p>Equivalent to <code>text &quot;,&quot;</code></p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-lbrack"><a href="#val-lbrack" class="anchor"></a><code><span><span class="keyword">val</span> lbrack : <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p>Equivalent to <code>text &quot;[&quot;</code></p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-rbrack"><a href="#val-rbrack" class="anchor"></a><code><span><span class="keyword">val</span> rbrack : <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p>Equivalent to <code>text &quot;]&quot;</code></p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-lbrace"><a href="#val-lbrace" class="anchor"></a><code><span><span class="keyword">val</span> lbrace : <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p>Equivalent to <code>text &quot;{&quot;</code></p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-rbrace"><a href="#val-rbrace" class="anchor"></a><code><span><span class="keyword">val</span> rbrace : <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p>Equivalent to <code>text &quot;}&quot;</code></p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-lparen"><a href="#val-lparen" class="anchor"></a><code><span><span class="keyword">val</span> lparen : <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p>Equivalent to <code>text &quot;(&quot;</code></p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-rparen"><a href="#val-rparen" class="anchor"></a><code><span><span class="keyword">val</span> rparen : <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p>Equivalent to <code>text &quot;)&quot;</code></p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-dquote"><a href="#val-dquote" class="anchor"></a><code><span><span class="keyword">val</span> dquote : <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p>Equivalent to <code>text &quot;\&quot;&quot;</code></p></div></div></details></div><div class="odoc-spec"><div class="spec value anchored" id="val-(&lt;&gt;)"><a href="#val-(&lt;&gt;)" class="anchor"></a><code><span><span class="keyword">val</span> (&lt;&gt;) : <span><a href="#type-doc">doc</a> <span class="arrow">&#45;&gt;</span></span> <span><a href="#type-doc">doc</a> <span class="arrow">&#45;&gt;</span></span> <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p><code>&lt;&gt;</code> is the same as <a href="#val-(^^)"><code>(^^)</code></a></p></div></div></div></body></html>
