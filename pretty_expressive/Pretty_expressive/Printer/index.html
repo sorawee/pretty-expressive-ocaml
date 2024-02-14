@@ -8,9 +8,9 @@
   <span><span class="optlabel">?computation_width</span>:int <span class="arrow">&#45;&gt;</span></span>
   <span>unit <span class="arrow">&#45;&gt;</span></span>
   <span>(<span class="keyword">module</span> <a href="../Signature/module-type-CostFactory/index.html">Signature.CostFactory</a>
-  <span class="keyword">with</span> <span class="keyword">type</span> <a href="../Signature/module-type-CostFactory/index.html#type-t">t</a> = int * int * int * int)</span></span></code></div><div class="spec-doc"><p>The default cost factory, parameterized by the page width limit <code>page_width</code>, and optionally <a href="../../index.html#complimit" title="complimit">the computation width limit</a> <code>computation_width</code>. When the computation width limit is not specified, it is set to <code>1.2 * page_width</code>.</p><p>In this cost factory, the cost type <code>t</code> is a quadruple of natural numbers.</p><ul><li>The first component is <i>badness</i>, which is roughly speaking the sum of squared overflows over the page width limit</li><li>The second component is sum of overflows over a column separator.</li><li>The third component is the height (number of newlines).</li><li>The fourth component is bias penalty to encourage toward choosing a leftmost column separator.</li></ul><p>Internally, <code>default_cost_factory</code> is defined as:</p><pre class="language-ocaml"><code>let default_cost_factory ~page_width ?computation_width () =
+  <span class="keyword">with</span> <span class="keyword">type</span> <a href="../Signature/module-type-CostFactory/index.html#type-t">t</a> = int * int * int)</span></span></code></div><div class="spec-doc"><p>The default cost factory, parameterized by the page width limit <code>page_width</code>, and optionally <a href="../../index.html#complimit" title="complimit">the computation width limit</a> <code>computation_width</code>. When the computation width limit is not specified, it is set to <code>1.2 * page_width</code>.</p><p>In this cost factory, the cost type <code>t</code> is a quadruple of natural numbers.</p><ul><li>The first component is <i>badness</i>, which is roughly speaking the sum of squared overflows over the page width limit</li><li>The second component is sum of overflows over a column separator.</li><li>The third component is the height (number of newlines).</li></ul><p>Internally, <code>default_cost_factory</code> is defined as:</p><pre class="language-ocaml"><code>let default_cost_factory ~page_width ?computation_width () =
   (module struct
-    type t = int * int * int * int
+    type t = int * int * int
 
     let limit = match computation_width with
       | None -&gt; (float_of_int page_width) *. 1.2 |&gt; int_of_float
@@ -22,22 +22,22 @@
         let maxwc = max page_width pos in
         let a = maxwc - page_width in
         let b = stop - maxwc in
-        (b * (2*a + b), 0, 0, 0)
+        (b * (2*a + b), 0, 0)
       else
-        (0, 0, 0, 0)
+        (0, 0, 0)
 
-    let newline _ = (0, 0, 1, 0)
+    let newline _ = (0, 0, 1)
 
-    let combine (o1, ot1, h1, bt1) (o2, ot2, h2, bt2) =
-      (o1 + o2, ot1 + ot2, h1 + h2, bt1 + bt2)
+    let combine (o1, ot1, h1) (o2, ot2, h2) =
+      (o1 + o2, ot1 + ot2, h1 + h2)
 
     let le c1 c2 = c1 &lt;= c2
 
-    let two_columns_overflow w = (0, w, 0, 0)
+    let two_columns_overflow w = (0, w, 0)
 
-    let two_columns_bias     w = (0, 0, 0, w)
+    let two_columns_bias     _ = (0, 0, 0)
 
-    let string_of_cost (o, ot, h, bt) = Printf.sprintf &quot;(%d %d %d %d)&quot; o ot h bt
+    let string_of_cost (o, ot, h) = Printf.sprintf &quot;(%d %d %d)&quot; o ot h
 
     let debug_format = make_debug_format page_width
-  end: Signature.CostFactory with type t = int * int * int * int)</code></pre></div></div></div></body></html>
+  end: Signature.CostFactory with type t = int * int * int)</code></pre></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-version"><a href="#val-version" class="anchor"></a><code><span><span class="keyword">val</span> version : string</span></code></div></div></div></body></html>

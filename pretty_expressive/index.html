@@ -128,7 +128,7 @@ rparen</code></pre><h3 id="complimit"><a href="#complimit" class="anchor"></a>Th
     let string_of_cost (c, s) = Printf.sprintf &quot;(%s %d)&quot; (F.string_of_cost c) s
 
     let debug_format = F.debug_format
-  end: Signature.CostFactory with type t = (int * int * int * int) * int)</code></pre><p>We now construct a function to convert an S-expression into a document, and utilize the <a href="Pretty_expressive/Printer/Make/index.html#val-cost" title="Pretty_expressive.Printer.Make.cost"><code>cost</code></a> construct to add a style cost to the vertical style document, thus discouraging it.</p><pre class="language-ocaml"><code>let revised_print_sexp (s : sexp) (w : int) =
+  end: Signature.CostFactory with type t = (int * int * int) * int)</code></pre><p>We now construct a function to convert an S-expression into a document, and utilize the <a href="Pretty_expressive/Printer/Make/index.html#val-cost" title="Pretty_expressive.Printer.Make.cost"><code>cost</code></a> construct to add a style cost to the vertical style document, thus discouraging it.</p><pre class="language-ocaml"><code>let revised_print_sexp (s : sexp) (w : int) =
   let cf = my_cost_factory ~page_width:w () in
   let module P = Printer.Make (val cf) in
   let open P in
@@ -145,7 +145,7 @@ rparen</code></pre><h3 id="complimit"><a href="#complimit" class="anchor"></a>Th
       let xs_d = List.map pretty xs in
       lparen &lt;+&gt;
       (acat (x_d :: xs_d) &lt;|&gt; (* the horizontal style *)
-       (cost ((0, 0, 0, 0), 1) (vcat (x_d :: xs_d))) &lt;|&gt; (* the vertical style -- penalized *)
+       (cost ((0, 0, 0), 1) (vcat (x_d :: xs_d))) &lt;|&gt; (* the vertical style -- penalized *)
        (x_d &lt;+&gt; space &lt;+&gt; vcat xs_d)) &lt;+&gt; (* the argument list style *)
       rparen
   in
