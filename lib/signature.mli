@@ -15,13 +15,9 @@ sig
           {- If [a] <= [b], then [le (newline a) (newline b)]}
           {- [text c (a + b) = combine (text c a) (text (c + a) b)]}
           {- [combine] is associative and has the identity equal to [text 0 0]}
-          {- [text c 0] = [text 0 0] for any [c]}}
-
-      The following contracts are required if {{!Printer.Make.two_columns}[two_columns]}
-      is used.
-
-      {ul {- If [a] <= [b], then [le (two_columns_bias a) (two_columns_bias b)]}
-          {- If [a] <= [b], then [le (two_columns_overflow a) (two_columns_overflow b)]}}
+          {- [text c 0] = [text 0 0] for any [c]}
+          {- If [a] <= [b], then [le (two_columns_overflow a) (two_columns_overflow b)]}
+          {- If [a] <= [b], then [le (two_columns_bias a) (two_columns_bias b)]}}
 
       See {{!Printer.default_cost_factory}[default_cost_factory]},
       {{!page-index.factory}the cost factory section},
@@ -156,7 +152,7 @@ sig
       Hi All!   │
 
       is_tainted: false
-      cost: (1 0 1 0)
+      cost: (1 0 1)
       - : unit = ()
       ]} *)
 
@@ -165,6 +161,8 @@ sig
   val text : string -> doc
   (** [text s] is a document for textual content [s];
       [s] must not contain a newline.
+      The cost for the text placement can be adjusted via
+      {{!Signature.CostFactory.text}[CostFactory.text]}.
 
       {5 Examples:}
       {[
@@ -179,7 +177,11 @@ sig
   (** [newline s] is a document for a newline.
       When [s] is [None], it {!flatten}s to {!fail}.
       When [s] is not [None], it {!flatten}s to [text s].
-      See {!flatten} for more details. *)
+      See {!flatten} for more details.
+      After the newline is inserted, indentation will be added, according to
+      the current indentation level.
+      The cost of the newline and indentation spaces can be adjusted via
+      {{!Signature.CostFactory.newline}[CostFactory.newline]}. *)
 
   val nl : doc
   (** [nl] is a document for a newline that {!flatten}s to a single space. *)
@@ -200,6 +202,8 @@ sig
       the built-in not equal operator.
       This operator also known as the {i unaligned concatenation},
       which is widely used in traditional pretty printers.
+      The cost for the concatenation can be adjusted via
+      {{!Signature.CostFactory.combine}[CostFactory.combine]}.
 
       See also {!Printer.MakeCompat} for a functor that provides this operator
       under the symbol [<>].
@@ -342,14 +346,14 @@ sig
 
       {5 Examples:}
       {[
-      # pretty_format_debug (cost (1, 0, 0, 0) (text "CrossCode") <|>
+      # pretty_format_debug (cost (1, 0, 0) (text "CrossCode") <|>
                             (text "Final" ^^ nl ^^ text "Fantasy")) |> print_endline;;
       1234567890
       Final     │
       Fantasy   │
 
       is_tainted: false
-      cost: (0 0 1 0)
+      cost: (0 0 1)
       - : unit = ()
       ]}
 
@@ -360,7 +364,7 @@ sig
       CrossCode │
 
       is_tainted: false
-      cost: (0 0 0 0)
+      cost: (0 0 0)
       - : unit = ()
       ]}
 
@@ -371,8 +375,9 @@ sig
   (** {2 Filler documents} *)
 
   val two_columns : (doc * doc) list -> doc
-  (** [two_columns ds] is a document that lays out the documents in [ds]
-      in two columns.
+  (** ({b experimental}) [two_columns ds] is a document that lays out
+      the documents in [ds] in two columns by inserting spaces between
+      the two columns in each row.
 
       Note that this is {b not quite} a table layout, because:
       {ul {- In each row, the right column will start at the same line as
@@ -388,10 +393,17 @@ sig
              The [print_doc_match 54] example below demonstrates this.}}
 
       Also note that some rows {i may} overflow the
-      column separator (e.g. in order to avoid the global overflow over
-      the page width limit). The function
-      {{!Signature.CostFactory.two_columns_overflow}[two_columns_overflow]}
-      can be used to customize this behavior.
+      column separator anyway (e.g. in order to avoid the global overflow over
+      the page width limit).
+
+      The cost of the overflow over the column separator can be adjusted via
+      {{!Signature.CostFactory.two_columns_overflow}[CostFactory.two_columns_overflow]}
+      (this particularly can be used to strongly discourage overflow over
+      the column separator).
+      The cost to prefer the leftmost column separator can be adjusted via
+      {{!Signature.CostFactory.two_columns_bias}[CostFactory.two_columns_bias]}.
+      Meanwhile, the cost for the inserted spaces between the two columns
+      is always fixed to [CostFactory.text 0 0].
 
       The indentation level is set to the initial current column position
       (in the same manner as {{!Printer.Make.align}[align]}) so that on entering
@@ -400,7 +412,10 @@ sig
       Unlike {{:https://hackage.haskell.org/package/wl-pprint-1.2.1/docs/Text-PrettyPrint-Leijen.html#v:fill}[fill]}
       or {{:https://hackage.haskell.org/package/wl-pprint-1.2.1/docs/Text-PrettyPrint-Leijen.html#v:fillBreak}[fillBreak]}
       from Wadler/Leijen's pretty printer, which requires users to specify a fixed position of the column separator,
-      [two_columns] will find the position automatically, and will find the leftmost one.
+      [two_columns] will find the position automatically, and will find a "fitting" one.
+
+      This document is expensive. Internally, it expands to a very large document.
+      Don't use it if the input list is long!
 
       {5 Examples:}
 
@@ -437,7 +452,7 @@ sig
           linebreak :: Doc              │
 
       is_tainted: false
-      cost: (0 0 2 2)
+      cost: (0 0 2)
       - : unit = ()
       ]}
 
@@ -449,7 +464,7 @@ sig
           linebreak :: Doc             │
 
       is_tainted: false
-      cost: (0 4 2 1)
+      cost: (0 4 2)
       - : unit = ()
       ]}
 
@@ -461,7 +476,7 @@ sig
           linebreak :: Doc        │
 
       is_tainted: false
-      cost: (1 6 2 0)
+      cost: (1 6 2)
       - : unit = ()
       ]}
 
@@ -488,7 +503,7 @@ sig
           linebreak :: Doc              │
 
       is_tainted: false
-      cost: (0 0 2 3)
+      cost: (0 0 2)
       - : unit = ()
       ]}
 
@@ -501,7 +516,7 @@ sig
                 :: Doc                 │
 
       is_tainted: false
-      cost: (0 0 3 2)
+      cost: (0 0 3)
       - : unit = ()
       ]}
 
@@ -516,7 +531,7 @@ sig
            :: Doc                 │
 
       is_tainted: false
-      cost: (0 0 5 0)
+      cost: (0 0 5)
       - : unit = ()
       ]}
 
@@ -536,7 +551,7 @@ sig
           let open P in
           let d = text "let rec find_member to_find xs =" ^^
                   nest 2 (
-                    nl ^^ text "match xs" ^^ nl ^^
+                    nl ^^ text "match xs with" ^^ nl ^^
                     two_columns
                       (List.map
                          (fun (n, t) ->
@@ -552,13 +567,13 @@ sig
       # print_doc_match 55;;
       1234567890123456789012345678901234567890123456789012345
       let rec find_member to_find xs =                       │
-        match xs                                             │
+        match xs with                                        │
         | []                        -> false                 │
         | hd :: _ when hd = to_find -> true                  │
         | _ :: tl                   -> find_member to_find tl│
 
       is_tainted: false
-      cost: (0 0 4 2)
+      cost: (0 0 4)
       - : unit = ()
       ]}
 
@@ -566,14 +581,14 @@ sig
       # print_doc_match 54;;
       123456789012345678901234567890123456789012345678901234
       let rec find_member to_find xs =                      │
-        match xs                                            │
+        match xs with                                       │
         | []                        -> false                │
         | hd :: _ when hd = to_find -> true                 │
         | _ :: tl                   ->                      │
           find_member to_find tl                            │
 
       is_tainted: false
-      cost: (0 0 5 2)
+      cost: (0 0 5)
       - : unit = ()
       ]} *)
 

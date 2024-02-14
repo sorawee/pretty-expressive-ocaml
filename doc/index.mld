@@ -362,7 +362,7 @@ let my_cost_factory ~page_width ?computation_width () =
     let string_of_cost (c, s) = Printf.sprintf "(%s %d)" (F.string_of_cost c) s
 
     let debug_format = F.debug_format
-  end: Signature.CostFactory with type t = (int * int * int * int) * int)
+  end: Signature.CostFactory with type t = (int * int * int) * int)
 ]}
 
 We now construct a function to convert an S-expression into a document,
@@ -387,7 +387,7 @@ let revised_print_sexp (s : sexp) (w : int) =
       let xs_d = List.map pretty xs in
       lparen <+>
       (acat (x_d :: xs_d) <|> (* the horizontal style *)
-       (cost ((0, 0, 0, 0), 1) (vcat (x_d :: xs_d))) <|> (* the vertical style -- penalized *)
+       (cost ((0, 0, 0), 1) (vcat (x_d :: xs_d))) <|> (* the vertical style -- penalized *)
        (x_d <+> space <+> vcat xs_d)) <+> (* the argument list style *)
       rparen
   in

@@ -1,3 +1,9 @@
+## 0.4 (2024-02-14)
+
+* Fix a critical issue in `two_columns`: remove phantom spaces, 
+  and adjust costs to ensure optimality.
+* Mark `two_columns` as experimental.
+
 ## 0.3 (2024-02-11)
 
 * Add the `two_columns` construct

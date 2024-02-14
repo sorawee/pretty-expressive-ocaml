@@ -15,7 +15,7 @@
 
 (documentation https://sorawee.github.io/pretty-expressive-ocaml/)
 
-(version 0.3)
+(version 0.4)
 
 (using mdx 0.4)
 
