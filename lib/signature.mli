@@ -112,7 +112,9 @@ sig
       OCaml
       Pyret
       - : unit = ()
+      ]}
 
+      {[
       # print_string "Languages: ";
         pretty_print
           ~init_c:11
@@ -204,8 +206,13 @@ sig
 
       {5 Examples:}
       {[
-      let left_doc = text "Splatoon" ^^ nl ^^ text "Nier";;
-      let right_doc = text "Automata" ^^ nl ^^ text "FEZ";;
+      # let left_doc = text "Splatoon" ^^ nl ^^ text "Nier";;
+      val left_doc : doc = <abstr>
+      ]}
+
+      {[
+      # let right_doc = text "Automata" ^^ nl ^^ text "FEZ";;
+      val right_doc : doc = <abstr>
       ]}
 
       {[
@@ -237,12 +244,16 @@ sig
             (text "Chrono Trigger" <|>
              (text "Octopath" ^^ nl ^^ text "Traveler"));;
       val print_doc : int -> unit = <fun>
+      ]}
 
+      {[
       # print_doc 10;;
       Octopath
       Traveler
       - : unit = ()
+      ]}
 
+      {[
       # print_doc 15;;
       Chrono Trigger
       - : unit = ()
@@ -306,7 +317,9 @@ sig
                          text "Baba is you" ^^ nl ^^
                          text "EOF");;
       val s_d : doc = <abstr>
+      ]}
 
+      {[
       # pretty_print
           print_string
           (text "when 1 = 2:" ^^ nest 4 (nl ^^ text "print " ^^ s_d));;
@@ -338,7 +351,9 @@ sig
       is_tainted: false
       cost: (0 0 1 0)
       - : unit = ()
+      ]}
 
+      {[
       # pretty_format_debug (text "CrossCode" <|>
                             (text "Final" ^^ nl ^^ text "Fantasy")) |> print_endline;;
       1234567890
@@ -359,9 +374,18 @@ sig
   (** [two_columns ds] is a document that lays out the documents in [ds]
       in two columns.
 
-      Note that this is {b not quite} a table layout, because in each row,
-      the right column will start at the same line as the last line
-      of the left column.
+      Note that this is {b not quite} a table layout, because:
+      {ul {- In each row, the right column will start at the same line as
+             the last line of the left column.
+             The [print_doc_let_nl 33] example below demonstrates this.}
+          {- The restriction to not exceed the column separator only applies to
+             the last line of the left column.
+             The prior lines can freely exceed the column separator.
+             The [print_doc_let_nl 33] example below demonstrates this.}
+          {- The right column's non-first lines can flow back to
+             the beginning of the left column (use {{!Printer.Make.align}[align]}
+             to restrict the right column content from flowing back).
+             The [print_doc_match 54] example below demonstrates this.}}
 
       Also note that some rows {i may} overflow the
       column separator (e.g. in order to avoid the global overflow over
@@ -380,7 +404,8 @@ sig
 
       {5 Examples:}
 
-      Following example is taken from {{:https://hackage.haskell.org/package/wl-pprint-1.2.1/docs/Text-PrettyPrint-Leijen.html}}
+      The [types] example is taken from
+      {{:https://hackage.haskell.org/package/wl-pprint-1.2.1/docs/Text-PrettyPrint-Leijen.html#v:fill}}
 
       {[
       # let types = [ ("empty",     "Doc") ;
@@ -388,8 +413,10 @@ sig
                       ("linebreak", "Doc") ];;
       val types : (string * string) list =
         [("empty", "Doc"); ("nest", "Int -> Doc -> Doc"); ("linebreak", "Doc")]
+      ]}
 
-      # let print_doc w =
+      {[
+      # let print_doc_let w =
           let cf = Printer.default_cost_factory ~page_width:w () in
           let module P = Printer.Make (val cf) in
           let open P in
@@ -399,9 +426,11 @@ sig
                                     (text n, text " :: " ^^ text t))
                                  types) in
           pretty_format_debug d |> print_endline;;
-      val print_doc : int -> unit = <fun>
+      val print_doc_let : int -> unit = <fun>
+      ]}
 
-      # print_doc 34;;
+      {[
+      # print_doc_let 34;;
       1234567890123456789012345678901234
       let empty     :: Doc              │
           nest      :: Int -> Doc -> Doc│
@@ -410,8 +439,10 @@ sig
       is_tainted: false
       cost: (0 0 2 2)
       - : unit = ()
+      ]}
 
-      # print_doc 33;;
+      {[
+      # print_doc_let 33;;
       123456789012345678901234567890123
       let empty :: Doc                 │
           nest  :: Int -> Doc -> Doc   │
@@ -420,8 +451,10 @@ sig
       is_tainted: false
       cost: (0 4 2 1)
       - : unit = ()
+      ]}
 
-      # print_doc 28;;
+      {[
+      # print_doc_let 28;;
       1234567890123456789012345678
       let empty :: Doc            │
           nest :: Int -> Doc -> Do│c
@@ -430,8 +463,10 @@ sig
       is_tainted: false
       cost: (1 6 2 0)
       - : unit = ()
+      ]}
 
-      # let print_doc_nl w =
+      {[
+      # let print_doc_let_nl w =
           let cf = Printer.default_cost_factory ~page_width:w () in
           let module P = Printer.Make (val cf) in
           let open P in
@@ -442,9 +477,11 @@ sig
                                      text " :: " ^^ text t))
                                  types) in
           pretty_format_debug d |> print_endline;;
-      val print_doc_nl : int -> unit = <fun>
+      val print_doc_let_nl : int -> unit = <fun>
+      ]}
 
-      # print_doc_nl 34;;
+      {[
+      # print_doc_let_nl 34;;
       1234567890123456789012345678901234
       let empty     :: Doc              │
           nest      :: Int -> Doc -> Doc│
@@ -453,8 +490,10 @@ sig
       is_tainted: false
       cost: (0 0 2 3)
       - : unit = ()
+      ]}
 
-      # print_doc_nl 33;;
+      {[
+      # print_doc_let_nl 33;;
       123456789012345678901234567890123
       let empty :: Doc                 │
           nest  :: Int -> Doc -> Doc   │
@@ -464,8 +503,10 @@ sig
       is_tainted: false
       cost: (0 0 3 2)
       - : unit = ()
+      ]}
 
-      # print_doc_nl 28;;
+      {[
+      # print_doc_let_nl 28;;
       1234567890123456789012345678
       let empty                   │
            :: Doc                 │
@@ -476,6 +517,63 @@ sig
 
       is_tainted: false
       cost: (0 0 5 0)
+      - : unit = ()
+      ]}
+
+      {[
+      # let table = [ ("[]",                        "false") ;
+                      ("hd :: _ when hd = to_find", "true") ;
+                      ("_ :: tl",                   "find_member to_find tl") ];;
+      val table : (string * string) list =
+        [("[]", "false"); ("hd :: _ when hd = to_find", "true");
+         ("_ :: tl", "find_member to_find tl")]
+      ]}
+
+      {[
+      # let print_doc_match w =
+          let cf = Printer.default_cost_factory ~page_width:w () in
+          let module P = Printer.Make (val cf) in
+          let open P in
+          let d = text "let rec find_member to_find xs =" ^^
+                  nest 2 (
+                    nl ^^ text "match xs" ^^ nl ^^
+                    two_columns
+                      (List.map
+                         (fun (n, t) ->
+                           (text "| " ^^ text n,
+                             text " -> " ^^ ((nl ^^ text "  ") <|> empty) ^^
+                             text t))
+                         table)) in
+          pretty_format_debug d |> print_endline;;
+      val print_doc_match : int -> unit = <fun>
+      ]}
+
+      {[
+      # print_doc_match 55;;
+      1234567890123456789012345678901234567890123456789012345
+      let rec find_member to_find xs =                       │
+        match xs                                             │
+        | []                        -> false                 │
+        | hd :: _ when hd = to_find -> true                  │
+        | _ :: tl                   -> find_member to_find tl│
+
+      is_tainted: false
+      cost: (0 0 4 2)
+      - : unit = ()
+      ]}
+
+      {[
+      # print_doc_match 54;;
+      123456789012345678901234567890123456789012345678901234
+      let rec find_member to_find xs =                      │
+        match xs                                            │
+        | []                        -> false                │
+        | hd :: _ when hd = to_find -> true                 │
+        | _ :: tl                   ->                      │
+          find_member to_find tl                            │
+
+      is_tainted: false
+      cost: (0 0 5 2)
       - : unit = ()
       ]} *)
 
@@ -489,7 +587,9 @@ sig
       {[
       # pretty_print print_string (text "Sea of Stars" ^^ fail);;
       Exception: Failure "fails to render".
+      ]}
 
+      {[
       # pretty_print print_string ((text "Sea of Stars" ^^ fail) <|> text "Hades");;
       Hades
       - : unit = ()
@@ -509,18 +609,24 @@ sig
           (flatten (text "Fire Emblem" ^^ nl ^^ text "Awakening"));;
       Fire Emblem Awakening
       - : unit = ()
+      ]}
 
+      {[
       # pretty_print
           print_string
           (flatten (text "Mario + Rabbids" ^^ break ^^ text "Kingdom Battle"));;
       Mario + RabbidsKingdom Battle
       - : unit = ()
+      ]}
 
+      {[
       # pretty_print
           print_string
           (flatten (text "XCOM 2" ^^ hard_nl ^^ text "War of the Chosen"));;
       Exception: Failure "fails to render".
+      ]}
 
+      {[
       # pretty_print
           print_string
           (flatten (text "Tactics Ogre" ^^
