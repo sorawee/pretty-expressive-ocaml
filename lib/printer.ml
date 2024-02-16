@@ -5,12 +5,20 @@ type 's treeof =
   | One of 's
   | Cons of 's treeof * 's treeof
 
-let render_tree (renderer : Signature.renderer) (t: 's treeof): unit =
-  let rec loop (t: 's treeof) =
+let render_tree (renderer : Signature.renderer) (t: string treeof): unit =
+  let rec loop (t: string treeof) =
     match t with
     | One v -> renderer v
     | Cons (x, y) -> loop x; loop y
   in loop t
+
+let hashtbl_ref_and_set tbl key thk =
+  if Hashtbl.mem tbl key then
+    Hashtbl.find tbl key
+  else
+    let v = thk () in
+    Hashtbl.add tbl key v;
+    v
 
 module Core (C : Signature.CostFactory) = struct
   let global_id = ref 0
@@ -178,16 +186,7 @@ module Core (C : Signature.CostFactory) = struct
 
   let empty = text ""
 
-  let fold_doc f ds =
-    match ds with
-    | [] -> empty
-    | x :: xs -> List.fold_left f x xs
-
   let hard_nl = newline None
-
-  let (<$>) d1 d2 = d1 ^^ hard_nl ^^ d2
-
-  let vcat = fold_doc (<$>)
 
   let two_columns (ds : (doc * doc) list) =
     match ds with
@@ -270,12 +269,7 @@ module Core (C : Signature.CostFactory) = struct
         let key = i * all_slots + c in
         match table with
         | None -> failwith "unreachable"
-        | Some tbl ->
-          if Hashtbl.mem tbl key then Hashtbl.find tbl key
-          else
-            let ml = f g d c i in
-            Hashtbl.add tbl key ml;
-            ml
+        | Some tbl -> hashtbl_ref_and_set tbl key (fun () -> f g d c i)
       else f g d c i
     in g
 
@@ -286,6 +280,9 @@ module Core (C : Signature.CostFactory) = struct
     | _ -> failwith "unreachable"
 
   let do_two_columns self ds c =
+    let cache_row = Hashtbl.create 16 in
+    let cache_before = Hashtbl.create 16 in
+    let cache_after = Hashtbl.create 16 in
     let left_ms = List.map (fun (d1, _) -> self d1 c c) ds in
     let left_any_tainted = List.exists
         (fun ms ->
@@ -293,27 +290,54 @@ module Core (C : Signature.CostFactory) = struct
            | Tainted _ -> true
            | _ -> false)
         left_ms in
+    let build_choice c_sep before cur_left cur_right after =
+      let build_row d1 d2 =
+        d1 ^^
+        context (fun c_in _ ->
+            if c_sep >= c_in then
+              blank (c_sep - c_in)
+            else
+              cost (C.two_columns_overflow (c_in - c_sep)) empty) 0 ^^
+        d2
+      in
+      let build_cached_row i left right =
+        hashtbl_ref_and_set cache_row (c_sep, i)
+          (fun () -> build_row left right)
+      in
+      let rec build_before (i, _, left, right) before =
+        hashtbl_ref_and_set cache_before (c_sep, i)
+          (fun () ->
+             (match before with
+              | [] -> empty
+              | before_hd :: before ->
+                build_before before_hd before) ^^
+             build_cached_row i left right ^^ hard_nl)
+      in
+      let rec build_after (i, _, left, right) after =
+        hashtbl_ref_and_set cache_after (c_sep, i)
+          (fun () ->
+             hard_nl ^^ build_cached_row i left right ^^
+             (match after with
+              | [] -> empty
+              | after_hd :: after -> build_after after_hd after))
+      in
+      (match before with
+       | [] -> empty
+       | before_hd :: before_tl -> build_before before_hd before_tl) ^^
+      build_row cur_left cur_right ^^
+      (match after with
+       | [] -> empty
+       | after_hd :: after_tl -> build_after after_hd after_tl)
+    in
     let rec loop_limit
-        (before : (doc * doc) list)
-        (after_ms : measure_set list)
-        (after : (doc * doc) list) =
-      match (after_ms, after) with
-      | ([], []) -> fail
-      | (ms :: after_ms, (left, right) :: after) ->
-        let build c_sep ds =
-          List.map (fun (d1, d2) ->
-              d1 ^^
-              context (fun c_in _ ->
-                  if c_sep >= c_in then
-                    blank (c_sep - c_in)
-                  else
-                    cost (C.two_columns_overflow (c_in - c_sep)) empty) 0 ^^
-              d2) ds |> vcat |> fun d -> cost (C.two_columns_bias (c_sep - c)) d
-        in
+        (before : (int * measure_set * doc * doc) list)
+        (after : (int * measure_set * doc * doc) list) =
+      match after with
+      | [] -> fail
+      | ((_, ms, left, right) as tup) :: after ->
         let build_choice c_sep ms =
-          build
-            c_sep
-            (List.rev_append before ((evaled ms left.nl_cnt, right) :: after))
+          cost (C.two_columns_bias (c_sep - c))
+            (build_choice c_sep before (evaled ms left.nl_cnt) right after)
         in
         (match ms with
          | Tainted mt ->
@@ -325,21 +349,20 @@ module Core (C : Signature.CostFactory) = struct
              | [] -> fail
              | m :: ms -> build_choice m.last (MeasureSet [m]) <|> loop_inner ms
            in
-           loop_inner ms <|> loop_limit ((left, right) :: before) after_ms after)
-      | _ -> failwith "unreachable"
+           loop_inner ms <|> loop_limit (tup :: before) after)
     in
     (* NOTE: we can get the nl_cnt here to be precise with some tracking.
        Do we want to do that? *)
-    let make_doc ms (d1, d2) =
+    let make_doc ms (d1, d2) (i, acc) =
       let ms = match ms with
         (* force evaluation, so that we can share the outer shell freely *)
         | Tainted mt -> let m = mt () in Tainted (fun () -> m)
         | MeasureSet _ -> ms
-      in (ms, (evaled ms d1.nl_cnt, d2))
+      in (i + 1, (i, ms, evaled ms d1.nl_cnt, d2) :: acc)
     in
     let get_measure_set () =
-      let (after_ms, after) = List.split (List.map2 make_doc left_ms ds) in
-      let d = loop_limit [] after_ms after in
+      let (_, after) = List.fold_right2 make_doc left_ms ds (0, []) in
+      let d = loop_limit [] after in
       self d c c
     in
     if left_any_tainted then
@@ -424,13 +447,13 @@ module Make (C : Signature.CostFactory): (Signature.PrinterT with type cost = C.
   let nl = newline (Some " ")
   let break = newline (Some "")
 
+  let (<$>) d1 d2 = d1 ^^ hard_nl ^^ d2
+
   let flatten : doc -> doc =
     let cache = Hashtbl.create 1000 in
     let rec flatten ({ dc = dc; id = id; _ } as d) =
-      if Hashtbl.mem cache id then
-        Hashtbl.find cache id
-      else
-        let out = match dc with
+      hashtbl_ref_and_set cache id (fun () ->
+          match dc with
           | Fail | Text _ -> d
           | Newline None -> fail
           | Newline (Some s) -> text s
@@ -449,10 +472,7 @@ module Make (C : Signature.CostFactory): (Signature.PrinterT with type cost = C.
           (* There are at least two lines, so it can't be flattened *)
           | TwoColumns _ -> fail
           | Blank _ -> d
-          | Context _ | Evaled _ -> failwith "unreachable"
-        in
-        Hashtbl.add cache id out;
-        out
+          | Context _ | Evaled _ -> failwith "unreachable")
     in flatten
 
   let (<+>) d1 d2 = d1 ^^ align d2
@@ -460,7 +480,13 @@ module Make (C : Signature.CostFactory): (Signature.PrinterT with type cost = C.
 
   let (<->) x y = (flatten x) <+> y
 
+  let fold_doc f ds =
+    match ds with
+    | [] -> empty
+    | x :: xs -> List.fold_left f x xs
+
   let hcat = fold_doc (<->)
+  let vcat = fold_doc (<$>)
 
   let pretty_format_info ?(init_c = 0) (d : doc): string * C.t Util.info =
     let buf = Buffer.create 16 in
@@ -545,4 +571,4 @@ let default_cost_factory ~page_width ?computation_width () =
   end: Signature.CostFactory with type t = int * int * int)
 (* $MDX part-end *)
 
-let version = "0.4"
+let version = "0.5"

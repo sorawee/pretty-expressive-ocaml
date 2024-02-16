@@ -351,6 +351,38 @@ let test_two_columns_factory_bias () =
     (pretty_format_debug (two_columns [ ( d1 <|> d2 <|> d3, d_right1 ) ;
                                         ( d_below,   d_right2 ) ]))
 
+let test_two_columns_performance () =
+  let cf = Printer.default_cost_factory ~page_width:100 ~computation_width:200 () in
+  let module P = Printer.Make (val cf) in
+  let open P in
+  let rec make_lines (n : int): doc =
+    if n = 1 then text "x"
+    else text "x" <$> make_lines (n - 1)
+  in
+  let make_choices (k : int): doc =
+    let rec loop (i : int): doc =
+      let doc =
+        (make_lines i) <+>
+        text (String.make (k - i) 'a')
+      in if i = 1 then doc else doc <|> loop (i - 1)
+    in loop k
+  in
+  let d_left = make_choices 100 in
+  let d_right = text "zzz" in
+  let rec make_rows (k : int) =
+    if k = 0 then
+      []
+    else
+      (d_left, d_right) :: make_rows (k - 1)
+  in
+  let run () =
+    pretty_format_debug (two_columns (make_rows 100)) |> ignore;
+    "ok"
+  in
+  Alcotest.(check string) "same string"
+    "ok"
+    (run ())
+
 let suite =
   [ "choice; w = 80", `Quick, test_choice_doc_80;
     "choice; w = 20", `Quick, test_choice_doc_20;
@@ -364,7 +396,8 @@ let suite =
     "two_columns (3)", `Quick, test_two_columns_case_3;
     "two_columns (regression phantom space)", `Quick, test_two_columns_regression_phantom;
     "two_columns (cost factory - overflow)", `Quick, test_two_columns_factory_overflow;
-    "two_columns (cost factory - bias)", `Quick, test_two_columns_factory_bias ]
+    "two_columns (cost factory - bias)", `Quick, test_two_columns_factory_bias ;
+    "two_columns (performance)", `Quick, test_two_columns_performance ]
 
 let () =
   Alcotest.run "pretty expressive" [ "example doc", suite ]

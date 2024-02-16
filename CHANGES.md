@@ -1,3 +1,8 @@
+## 0.5 (2024-02-16)
+
+* Improve performance in `two_columns` via the zipper data structure 
+  and caching.
+
 ## 0.4 (2024-02-14)
 
 * Fix a critical issue in `two_columns`: remove phantom spaces, 
