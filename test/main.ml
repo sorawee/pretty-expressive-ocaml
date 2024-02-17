@@ -27,47 +27,32 @@ let print_doc_group (w : int) =
   in
   pretty_format d
 
+let horz_layout =
+  String.concat "\n"
+    [ "while (true) {";
+      "    f();";
+      "    if (done()) exit();";
+      "}" ]
+
+let vert_layout =
+  String.concat "\n"
+    [ "while (true) {";
+      "    f();";
+      "    if (done())";
+      "        exit();";
+      "}" ]
+
 let test_choice_doc_80 () =
-  Alcotest.(check string) "same string"
-    (String.concat "\n"
-       [ "while (true) {" ;
-         "    f();" ;
-         "    if (done()) exit();" ;
-         "}"
-       ])
-    (print_doc_choice 80)
+  Alcotest.(check string) "same string" horz_layout (print_doc_choice 80)
 
 let test_choice_doc_20 () =
-  Alcotest.(check string) "same string"
-    (String.concat "\n"
-       [ "while (true) {" ;
-         "    f();" ;
-         "    if (done())" ;
-         "        exit();" ;
-         "}"
-       ])
-    (print_doc_choice 20)
+  Alcotest.(check string) "same string" vert_layout (print_doc_choice 20)
 
 let test_group_doc_80 () =
-  Alcotest.(check string) "same string"
-    (String.concat "\n"
-       [ "while (true) {" ;
-         "    f();" ;
-         "    if (done()) exit();" ;
-         "}"
-       ])
-    (print_doc_group 80)
+  Alcotest.(check string) "same string" horz_layout (print_doc_group 80)
 
 let test_group_doc_20 () =
-  Alcotest.(check string) "same string"
-    (String.concat "\n"
-       [ "while (true) {" ;
-         "    f();" ;
-         "    if (done())" ;
-         "        exit();" ;
-         "}"
-       ])
-    (print_doc_group 20)
+  Alcotest.(check string) "same string" vert_layout (print_doc_group 20)
 
 (******************************************************************************)
 
@@ -101,20 +86,18 @@ let example_sexp = List [Atom "a"; Atom "b"; Atom "c"; Atom "d"]
 let test_sexp_4 () =
   Alcotest.(check string) "same string"
     (String.concat "\n"
-       [ "(a" ;
-         " b" ;
-         " c" ;
-         " d)"
-       ])
+       [ "(a";
+         " b";
+         " c";
+         " d)" ])
     (print_sexp example_sexp 4)
 
 let test_sexp_6 () =
   Alcotest.(check string) "same string"
     (String.concat "\n"
-       [ "(a b" ;
-         "   c" ;
-         "   d)"
-       ])
+       [ "(a b";
+         "   c";
+         "   d)" ])
     (print_sexp example_sexp 6)
 
 let test_sexp_10 () =
@@ -122,6 +105,8 @@ let test_sexp_10 () =
     (String.concat "\n"
        [ "(a b c d)" ])
     (print_sexp example_sexp 10)
+
+(******************************************************************************)
 
 let test_two_columns_case_1 () =
   let cf = Printer.default_cost_factory ~page_width:4 ~computation_width:100 () in
@@ -145,8 +130,8 @@ let test_two_columns_case_1 () =
          "";
          "is_tainted: false";
          "cost: (0 1 2)" ])
-    (pretty_format_debug (two_columns [ ( d1 <|> d2, d_right1 ) ;
-                                        ( d_below,   d_right2 ) ]))
+    (pretty_format_debug (two_columns [ d1 <|> d2, d_right1;
+                                        d_below,   d_right2 ]))
 
 let test_two_columns_case_2 () =
   let cf = Printer.default_cost_factory ~page_width:5 ~computation_width:100 () in
@@ -170,8 +155,8 @@ let test_two_columns_case_2 () =
          "";
          "is_tainted: false";
          "cost: (0 0 2)" ])
-    (pretty_format_debug (two_columns [ ( d1 <|> d2, d_right1 ) ;
-                                        ( d_below,   d_right2 ) ]))
+    (pretty_format_debug (two_columns [ d1 <|> d2, d_right1;
+                                        d_below,   d_right2 ]))
 
 let test_two_columns_case_3 () =
   let cf = Printer.default_cost_factory ~page_width:7 ~computation_width:100 () in
@@ -195,8 +180,8 @@ let test_two_columns_case_3 () =
          "";
          "is_tainted: false";
          "cost: (0 0 2)" ])
-    (pretty_format_debug (two_columns [ ( d1 <|> d2, d_right1 ) ;
-                                        ( d_below,   d_right2 ) ]))
+    (pretty_format_debug (two_columns [ d1 <|> d2, d_right1;
+                                        d_below,   d_right2 ]))
 
 let test_two_columns_regression_phantom () =
   let cf = Printer.default_cost_factory ~page_width:7 ~computation_width:100 () in
@@ -222,8 +207,8 @@ let test_two_columns_regression_phantom () =
          "";
          "is_tainted: false";
          "cost: (0 3 2)" ])
-    (pretty_format_debug (two_columns [ ( phantom_doc <|> d, d_right1 ) ;
-                                        ( d_below, d_right2 ) ]))
+    (pretty_format_debug (two_columns [ phantom_doc <|> d, d_right1;
+                                        d_below,           d_right2 ]))
 
 (* This is a cost factory that cares more about preserving the two-column shape
    than avoiding overflows *)
@@ -241,20 +226,20 @@ let strict_two_columns_cost_factory ~page_width ?computation_width () =
         let maxwc = max page_width pos in
         let a = maxwc - page_width in
         let b = stop - maxwc in
-        (0, b * (2*a + b), 0)
+        0, b * (2*a + b), 0
       else
-        (0, 0, 0)
+        0, 0, 0
 
-    let newline _ = (0, 0, 1)
+    let newline _ = 0, 0, 1
 
     let combine (ot1, o1, h1) (ot2, o2, h2) =
-      (ot1 + ot2, o1 + o2, h1 + h2)
+      ot1 + ot2, o1 + o2, h1 + h2
 
     let le c1 c2 = c1 <= c2
 
-    let two_columns_overflow w = (w, 0, 0)
+    let two_columns_overflow w = w, 0, 0
 
-    let two_columns_bias _ = (0, 0, 0)
+    let two_columns_bias _ = 0, 0, 0
 
     let string_of_cost (ot, o, h) = Printf.sprintf "(%d %d %d)" ot o h
 
@@ -285,8 +270,8 @@ let test_two_columns_factory_overflow () =
          "";
          "is_tainted: false";
          "cost: (0 2 2)" ])
-    (pretty_format_debug (two_columns [ ( d1 <|> d2, d_right1 ) ;
-                                        ( d_below,   d_right2 ) ]))
+    (pretty_format_debug (two_columns [ d1 <|> d2, d_right1;
+                                        d_below,   d_right2 ]))
 
 (* This is a cost factory that cares about choosing leftmost separator, more than
    minimizing number of lines. It still tries to avoid overflows though *)
@@ -304,20 +289,20 @@ let biased_two_columns_cost_factory ~page_width ?computation_width () =
         let maxwc = max page_width pos in
         let a = maxwc - page_width in
         let b = stop - maxwc in
-        (b * (2*a + b), 0, 0, 0)
+        b * (2*a + b), 0, 0, 0
       else
-        (0, 0, 0, 0)
+        0, 0, 0, 0
 
-    let newline _ = (0, 0, 0, 1)
+    let newline _ = 0, 0, 0, 1
 
     let combine (o1, ot1, b1, h1) (o2, ot2, b2, h2) =
       (o1 + o2, ot1 + ot2, b1 + b2, h1 + h2)
 
     let le c1 c2 = c1 <= c2
 
-    let two_columns_overflow w = (0, w, 0, 0)
+    let two_columns_overflow w = 0, w, 0, 0
 
-    let two_columns_bias w = (0, 0, w, 0)
+    let two_columns_bias w = 0, 0, w, 0
 
     let string_of_cost (ot, o, b, h) = Printf.sprintf "(%d %d %d %d)" ot o b h
 
@@ -348,8 +333,8 @@ let test_two_columns_factory_bias () =
          "";
          "is_tainted: false";
          "cost: (0 0 2 2)" ])
-    (pretty_format_debug (two_columns [ ( d1 <|> d2 <|> d3, d_right1 ) ;
-                                        ( d_below,   d_right2 ) ]))
+    (pretty_format_debug (two_columns [ d1 <|> d2 <|> d3, d_right1;
+                                        d_below,          d_right2 ]))
 
 let test_two_columns_performance () =
   let cf = Printer.default_cost_factory ~page_width:100 ~computation_width:200 () in
@@ -375,29 +360,35 @@ let test_two_columns_performance () =
     else
       (d_left, d_right) :: make_rows (k - 1)
   in
-  let run () =
-    pretty_format_debug (two_columns (make_rows 100)) |> ignore;
-    "ok"
-  in
-  Alcotest.(check string) "same string"
-    "ok"
-    (run ())
-
-let suite =
-  [ "choice; w = 80", `Quick, test_choice_doc_80;
-    "choice; w = 20", `Quick, test_choice_doc_20;
-    "group; w = 80", `Quick, test_group_doc_80;
-    "group; w = 20", `Quick, test_group_doc_20;
-    "sexp; w = 4", `Quick, test_sexp_4;
-    "sexp; w = 6", `Quick, test_sexp_6;
-    "sexp; w = 10", `Quick, test_sexp_10;
-    "two_columns (1)", `Quick, test_two_columns_case_1;
-    "two_columns (2)", `Quick, test_two_columns_case_2;
-    "two_columns (3)", `Quick, test_two_columns_case_3;
-    "two_columns (regression phantom space)", `Quick, test_two_columns_regression_phantom;
-    "two_columns (cost factory - overflow)", `Quick, test_two_columns_factory_overflow;
-    "two_columns (cost factory - bias)", `Quick, test_two_columns_factory_bias ;
-    "two_columns (performance)", `Quick, test_two_columns_performance ]
+  Alcotest.(check pass) "run quickly with 10 rows in 10 different contexts"
+    true
+    (pretty_format_debug ((make_choices 10) ^^ (two_columns (make_rows 10)))
+     |> ignore;
+     true);
+  Alcotest.(check pass) "run quickly with 100 rows in the same context"
+    true
+    (pretty_format_debug (two_columns (make_rows 100))
+     |> ignore;
+     true)
 
 let () =
-  Alcotest.run "pretty expressive" [ "example doc", suite ]
+  Alcotest.run "pretty expressive"
+    [ "example doc",
+      [ "choice; w = 80", `Quick, test_choice_doc_80;
+        "choice; w = 20", `Quick, test_choice_doc_20;
+        "group; w = 80", `Quick, test_group_doc_80;
+        "group; w = 20", `Quick, test_group_doc_20 ];
+
+      "sexp",
+      [ "sexp; w = 4", `Quick, test_sexp_4;
+        "sexp; w = 6", `Quick, test_sexp_6;
+        "sexp; w = 10", `Quick, test_sexp_10 ];
+
+      "two_columns",
+      [ "case 1", `Quick, test_two_columns_case_1;
+        "case 2", `Quick, test_two_columns_case_2;
+        "case 3", `Quick, test_two_columns_case_3;
+        "regression phantom space", `Quick, test_two_columns_regression_phantom;
+        "cost factory - overflow", `Quick, test_two_columns_factory_overflow;
+        "cost factory - bias", `Quick, test_two_columns_factory_bias;
+        "performance", `Slow, test_two_columns_performance ] ]

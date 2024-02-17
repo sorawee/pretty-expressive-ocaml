@@ -44,20 +44,20 @@ let default_cost_factory ~page_width ?computation_width () =
         let maxwc = max page_width pos in
         let a = maxwc - page_width in
         let b = stop - maxwc in
-        (b * (2*a + b), 0, 0)
+        b * (2*a + b), 0, 0
       else
-        (0, 0, 0)
+        0, 0, 0
 
-    let newline _ = (0, 0, 1)
+    let newline _ = 0, 0, 1
 
     let combine (o1, ot1, h1) (o2, ot2, h2) =
-      (o1 + o2, ot1 + ot2, h1 + h2)
+      o1 + o2, ot1 + ot2, h1 + h2
 
     let le c1 c2 = c1 <= c2
 
-    let two_columns_overflow w = (0, w, 0)
+    let two_columns_overflow w = 0, w, 0
 
-    let two_columns_bias     _ = (0, 0, 0)
+    let two_columns_bias _ = 0, 0, 0
 
     let string_of_cost (o, ot, h) = Printf.sprintf "(%d %d %d)" o ot h
 

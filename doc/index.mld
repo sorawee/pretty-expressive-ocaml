@@ -107,8 +107,8 @@ are in scope.
 
 {2 Putting them all together}
 
-With the above setup, we can pretty-print [d] with the cost factory [cf] by calling [pretty_print d].
-This returns a string that we can then put on screen.
+With the above setup, we can pretty-print [d] with the cost factory [cf] by calling [pretty_print print_string d],
+which uses [print_string] to output content.
 
 Let's now actually use the pretty printer with page width limit of 80.
 
@@ -342,12 +342,12 @@ let my_cost_factory ~page_width ?computation_width () =
 
     let limit = F.limit
 
-    let text pos len = (F.text pos len, 0)
+    let text pos len = F.text pos len, 0
 
-    let newline _ = (F.newline 0, 0)
+    let newline _ = F.newline 0, 0
 
     let combine (c1, s1) (c2, s2) =
-      (F.combine c1 c2, s1 + s2)
+      F.combine c1 c2, s1 + s2
 
     let le (c1, s1) (c2, s2) =
       if c1 = c2 then
@@ -355,9 +355,9 @@ let my_cost_factory ~page_width ?computation_width () =
       else
         F.le c1 c2
 
-    let two_columns_overflow w = (F.two_columns_overflow w, 0)
+    let two_columns_overflow w = F.two_columns_overflow w, 0
 
-    let two_columns_bias w = (F.two_columns_bias w, 0)
+    let two_columns_bias w = F.two_columns_bias w, 0
 
     let string_of_cost (c, s) = Printf.sprintf "(%s %d)" (F.string_of_cost c) s
 

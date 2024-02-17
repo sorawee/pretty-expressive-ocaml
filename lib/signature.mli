@@ -423,9 +423,9 @@ sig
       {{:https://hackage.haskell.org/package/wl-pprint-1.2.1/docs/Text-PrettyPrint-Leijen.html#v:fill}}
 
       {[
-      # let types = [ ("empty",     "Doc") ;
-                      ("nest",      "Int -> Doc -> Doc") ;
-                      ("linebreak", "Doc") ];;
+      # let types = [ "empty",     "Doc";
+                      "nest",      "Int -> Doc -> Doc";
+                      "linebreak", "Doc" ];;
       val types : (string * string) list =
         [("empty", "Doc"); ("nest", "Int -> Doc -> Doc"); ("linebreak", "Doc")]
       ]}
@@ -437,8 +437,7 @@ sig
           let open P in
           let d = text "let " ^^
                   two_columns (List.map
-                                 (fun (n, t) ->
-                                    (text n, text " :: " ^^ text t))
+                                 (fun (n, t) -> text n, text " :: " ^^ text t)
                                  types) in
           pretty_format_debug d |> print_endline;;
       val print_doc_let : int -> unit = <fun>
@@ -488,8 +487,8 @@ sig
           let d = text "let " ^^
                   two_columns (List.map
                                  (fun (n, t) ->
-                                    (text n ^^ (nl <|> empty),
-                                     text " :: " ^^ text t))
+                                    text n ^^ group break,
+                                    text " :: " ^^ text t)
                                  types) in
           pretty_format_debug d |> print_endline;;
       val print_doc_let_nl : int -> unit = <fun>
@@ -536,9 +535,9 @@ sig
       ]}
 
       {[
-      # let table = [ ("[]",                        "false") ;
-                      ("hd :: _ when hd = to_find", "true") ;
-                      ("_ :: tl",                   "find_member to_find tl") ];;
+      # let table = [ "[]",                        "false";
+                      "hd :: _ when hd = to_find", "true";
+                      "_ :: tl",                   "find_member to_find tl" ];;
       val table : (string * string) list =
         [("[]", "false"); ("hd :: _ when hd = to_find", "true");
          ("_ :: tl", "find_member to_find tl")]
@@ -556,7 +555,7 @@ sig
                       (List.map
                          (fun (n, t) ->
                            (text "| " ^^ text n,
-                             text " -> " ^^ ((nl ^^ text "  ") <|> empty) ^^
+                             text " ->" ^^ group (nest 2 nl) ^^
                              text t))
                          table)) in
           pretty_format_debug d |> print_endline;;

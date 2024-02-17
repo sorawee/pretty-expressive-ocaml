@@ -12,7 +12,7 @@ let render_tree (renderer : Signature.renderer) (t: string treeof): unit =
     | Cons (x, y) -> loop x; loop y
   in loop t
 
-let hashtbl_ref_and_set tbl key thk =
+let hashtbl_ref_and_set (tbl : ('a, 'b) Hashtbl.t) (key : 'a) (thk : (unit -> 'b)) : 'b =
   if Hashtbl.mem tbl key then
     Hashtbl.find tbl key
   else
@@ -22,7 +22,7 @@ let hashtbl_ref_and_set tbl key thk =
 
 module Core (C : Signature.CostFactory) = struct
   let global_id = ref 0
-  let next_id () =
+  let next_id () : int =
     let id = !global_id in
     global_id := id + 1;
     id
@@ -52,7 +52,6 @@ module Core (C : Signature.CostFactory) = struct
     | Align of doc
     | Reset of doc
     | Cost of C.t * doc
-    (* invariant: the returned doc must not be Fail *)
     | Context of (int -> int -> doc)
     (* invariant: the list length >= 2 *)
     | TwoColumns of (doc * doc) list
@@ -63,37 +62,42 @@ module Core (C : Signature.CostFactory) = struct
   type cost = C.t
 
   let init_memo_w = param_memo_limit - 1
-  let calc_weight (d : doc) = if d.memo_w = 0 then init_memo_w else d.memo_w - 1
+  let calc_weight (d : doc) : int =
+    if d.memo_w = 0 then init_memo_w else d.memo_w - 1
   let init_table (w : int) = if w = 0 then Some (Hashtbl.create 5) else None
 
-  let fail = { dc = Fail;
-               id = next_id ();
-               memo_w = init_memo_w;
-               nl_cnt = 0;
-               table = None }
+  let fail : doc =
+    { dc = Fail;
+      id = next_id ();
+      memo_w = init_memo_w;
+      nl_cnt = 0;
+      table = None }
 
-  let newline v =
+  let newline (v : string option) : doc =
     { dc = Newline v;
       id = next_id ();
       memo_w = init_memo_w;
       nl_cnt = 1;
       table = None }
 
-  let make_text s l = { dc = Text (s, l);
-                        id = next_id ();
-                        memo_w = init_memo_w;
-                        nl_cnt = 0;
-                        table = None }
+  let make_text (s : string treeof) (l : int) : doc =
+    { dc = Text (s, l);
+      id = next_id ();
+      memo_w = init_memo_w;
+      nl_cnt = 0;
+      table = None }
 
-  let text s = make_text (One s) (String.length s)
+  let text (s : string) : doc =
+    make_text (One s) (String.length s)
 
-  let blank i = { dc = Blank i;
-                  id = next_id ();
-                  nl_cnt = 0;
-                  table = None;
-                  memo_w = init_memo_w }
+  let blank (i : int) : doc =
+    { dc = Blank i;
+      id = next_id ();
+      nl_cnt = 0;
+      table = None;
+      memo_w = init_memo_w }
 
-  let rec cost c d =
+  let rec cost (c : C.t) (d : doc) : doc =
     match d.dc with
     | Fail -> fail
     | Cost (c2, d) -> cost (C.combine c c2) d
@@ -105,14 +109,14 @@ module Core (C : Signature.CostFactory) = struct
         nl_cnt = d.nl_cnt;
         table = init_table memo_w }
 
-  let rec (^^) (d1 : doc) (d2 : doc) =
-    match (d1.dc, d2.dc) with
-    | (Fail, _) | (_, Fail) -> fail
-    | (Text (_, 0), _) -> d2
-    | (_, Text (_, 0)) -> d1
-    | (Text (s1, l1), Text (s2, l2)) -> make_text (Cons (s1, s2)) (l1 + l2)
-    | (_, Cost (c, d2)) -> cost c (d1 ^^ d2)
-    | (Cost (c, d1), _) -> cost c (d1 ^^ d2)
+  let rec (^^) (d1 : doc) (d2 : doc) : doc =
+    match d1.dc, d2.dc with
+    | Fail, _ | _, Fail -> fail
+    | Text (_, 0), _ -> d2
+    | _, Text (_, 0) -> d1
+    | Text (s1, l1), Text (s2, l2) -> make_text (Cons (s1, s2)) (l1 + l2)
+    | _, Cost (c, d2) -> cost c (d1 ^^ d2)
+    | Cost (c, d1), _ -> cost c (d1 ^^ d2)
     | _ ->
       let memo_w = min (calc_weight d1) (calc_weight d2) in
       { dc = Concat (d1, d2);
@@ -121,7 +125,7 @@ module Core (C : Signature.CostFactory) = struct
         nl_cnt = d1.nl_cnt + d2.nl_cnt;
         table = init_table memo_w }
 
-  let rec nest (n : int) (d : doc) =
+  let rec nest (n : int) (d : doc) : doc =
     match d.dc with
     | Fail | Align _ | Reset _ | Text _ -> d
     | Cost (c, d) -> cost c (nest n d)
@@ -133,9 +137,9 @@ module Core (C : Signature.CostFactory) = struct
         nl_cnt = d.nl_cnt;
         table = init_table memo_w }
 
-  let rec reset (d : doc) =
+  let rec reset (d : doc) : doc =
     match d.dc with
-    | Fail | Align _ | Reset _ | Text _   -> d
+    | Fail | Align _ | Reset _ | Text _ -> d
     | Cost (c, d) -> cost c (reset d)
     | _ ->
       let memo_w = calc_weight d in
@@ -145,9 +149,9 @@ module Core (C : Signature.CostFactory) = struct
         nl_cnt = d.nl_cnt;
         table = init_table memo_w }
 
-  let rec align d =
+  let rec align (d : doc) : doc =
     match d.dc with
-    | Fail | Align _ | Reset _ | Text _  -> d
+    | Fail | Align _ | Reset _ | Text _ -> d
     | Cost (c, d) -> cost c (align d)
     | _ ->
       let memo_w = calc_weight d in
@@ -157,23 +161,28 @@ module Core (C : Signature.CostFactory) = struct
         nl_cnt = d.nl_cnt;
         table = init_table memo_w }
 
-  (* Only for internal use. Don't provide it. *)
-  let context f nl_cnt =
+  (* Only for internal use. Don't provide it.
+     Invariant: the returned doc must not be fail *)
+  let context (f : int -> int -> doc) (nl_cnt : int) : doc =
     { dc = Context f;
       id = next_id ();
       memo_w = 0;
       nl_cnt;
       table = init_table 0 }
 
-  (* Only for internal use. Don't provide it. *)
-  let evaled ms nl_cnt =
+  (* Only for internal use. Don't provide it.
+     This is a super unsafe construct when used arbitrarily.
+     Only use it when we know exactly that it will be resolved under
+     a specific column position and indentation level that it was
+     previously resolved for *)
+  let evaled (ms : measure_set) (nl_cnt : int) : doc =
     { dc = Evaled ms;
       id = next_id ();
       memo_w = 0;
       nl_cnt;
       table = init_table 0 }
 
-  let (<|>) d1 d2 =
+  let (<|>) (d1 : doc) (d2 : doc) : doc =
     if d1 == fail then d2
     else if d2 == fail then d1
     else
@@ -184,14 +193,14 @@ module Core (C : Signature.CostFactory) = struct
         nl_cnt = max d1.nl_cnt d2.nl_cnt;
         table = init_table memo_w }
 
-  let empty = text ""
+  let empty : doc = text ""
 
-  let hard_nl = newline None
+  let hard_nl : doc = newline None
 
-  let two_columns (ds : (doc * doc) list) =
+  let two_columns (ds : (doc * doc) list) : doc =
     match ds with
     | [] -> empty
-    | [(dl, dr)] -> align (dl ^^ dr)
+    | [dl, dr] -> align (dl ^^ dr)
     | _ ->
       let any_fail =
         List.exists (fun (d1, d2) -> d1 == fail || d2 == fail) ds in
@@ -210,14 +219,14 @@ module Core (C : Signature.CostFactory) = struct
           table = init_table 0 }
 
   let merge (ml1 : measure_set) (ml2 : measure_set): measure_set =
-    match (ml1, ml2) with
-    | (_, Tainted _) -> ml1
-    | (Tainted _, _) -> ml2
-    | (MeasureSet ms1, MeasureSet ms2) ->
+    match ml1, ml2 with
+    | _, Tainted _ -> ml1
+    | Tainted _, _ -> ml2
+    | MeasureSet ms1, MeasureSet ms2 ->
       let rec loop ms1 ms2 = match (ms1, ms2) with
-        | ([], _) -> ms2
-        | (_, []) -> ms1
-        | (m1 :: ms1p, m2 :: ms2p) ->
+        | [], _ -> ms2
+        | _, [] -> ms1
+        | m1 :: ms1p, m2 :: ms2p ->
           if m1 <== m2 then loop ms1 ms2p
           else if m2 <== m1 then loop ms1p ms2
           else if m1.last > m2.last then m1 :: loop ms1p ms2
@@ -233,7 +242,7 @@ module Core (C : Signature.CostFactory) = struct
 
   let process_concat
       (process_left : measure -> measure_set)
-      (ml1 : measure_set) =
+      (ml1 : measure_set) : measure_set =
     match ml1 with
     | Tainted mt1 ->
       Tainted (fun () ->
@@ -279,7 +288,7 @@ module Core (C : Signature.CostFactory) = struct
     | MeasureSet (m :: _) -> m
     | _ -> failwith "unreachable"
 
-  let do_two_columns self ds c =
+  let do_two_columns self (ds : (doc * doc) list) (c : int) : measure_set =
     let cache_row = Hashtbl.create 16 in
     let cache_before = Hashtbl.create 16 in
     let cache_after = Hashtbl.create 16 in
@@ -351,17 +360,23 @@ module Core (C : Signature.CostFactory) = struct
            in
            loop_inner ms <|> loop_limit (tup :: before) after)
     in
-    (* NOTE: we can get the nl_cnt here to be precise with some tracking.
-       Do we want to do that? *)
     let make_doc ms (d1, d2) (i, acc) =
       let ms = match ms with
-        (* force evaluation, so that we can share the outer shell freely *)
+        (* We might share the measure set, but sharing a Tainted is bad,
+          since it contains a thunk. We want to share answers,
+          not a promise to produce an answer! So here, we force the evaluation
+          right away, and stuff the answer back to a thunk again, so that
+          the answers are shared. Note that we can do this since
+          we are already in a delayed context, if there is indeed a Tainted. *)
         | Tainted mt -> let m = mt () in Tainted (fun () -> m)
         | MeasureSet _ -> ms
-      in (i + 1, (i, ms, evaled ms d1.nl_cnt, d2) :: acc)
+      in
+      (* NOTE: we can get the nl_cnt here to be precise with some
+        additional tracking. Do we want to do that? *)
+      i + 1, (i, ms, evaled ms d1.nl_cnt, d2) :: acc
     in
     let get_measure_set () =
-      let (_, after) = List.fold_right2 make_doc left_ms ds (0, []) in
+      let _, after = List.fold_right2 make_doc left_ms ds (0, []) in
       let d = loop_limit [] after in
       self d c c
     in
@@ -378,19 +393,20 @@ module Core (C : Signature.CostFactory) = struct
       let core () =
         match dc with
         | Text (s, len_s) ->
-          MeasureSet [{ last = c + len_s ;
-                        cost = C.text c len_s ;
+          MeasureSet [{ last = c + len_s;
+                        cost = C.text c len_s;
                         layout = fun () -> render_tree renderer s }]
         | Newline _ ->
-          MeasureSet [{ last = i ;
-                        cost = C.newline i ;
+          MeasureSet [{ last = i;
+                        cost = C.newline i;
                         layout = fun () ->
                           renderer "\n";
                           renderer (String.make i ' ') }]
         | Concat (d1, d2) ->
           process_concat (fun (m1 : measure) -> self d2 m1.last i) (self d1 c i)
         | Choice (d1, d2) ->
-          if d1.nl_cnt < d2.nl_cnt then merge (self d2 c i) (self d1 c i)
+          if d1.nl_cnt < d2.nl_cnt
+          then merge (self d2 c i) (self d1 c i)
           else merge (self d1 c i) (self d2 c i)
         | Nest (n, d) -> self d c (i + n)
         | Align d -> self d c c
@@ -410,14 +426,14 @@ module Core (C : Signature.CostFactory) = struct
         | Fail -> failwith "fails to render"
       in
       let exceeds = match dc with
-        | Text (_, len) -> (c + len > C.limit) || (i > C.limit)
-        | _ -> (c > C.limit) || (i > C.limit) in
+        | Text (_, len) -> c + len > C.limit || i > C.limit
+        | _ -> c > C.limit || i > C.limit in
       if exceeds then
         Tainted (fun () -> choose_one (core ()))
       else core () in
-    let (m, is_tainted) = match memoize resolve d init_c 0 with
-      | MeasureSet (m :: _) -> (m, false)
-      | Tainted m -> (m (), true)
+    let m, is_tainted = match memoize resolve d init_c 0 with
+      | MeasureSet (m :: _) -> m, false
+      | Tainted m -> m (), true
       | _ -> failwith "unreachable" in
     (* In Racket, a doc can be printed with many cost factories, *)
     (* so the memoization tables should be cleared. *)
@@ -491,21 +507,19 @@ module Make (C : Signature.CostFactory): (Signature.PrinterT with type cost = C.
   let pretty_format_info ?(init_c = 0) (d : doc): string * C.t Util.info =
     let buf = Buffer.create 16 in
     let info = pretty_print_info ~init_c:init_c (Buffer.add_string buf) d in
-    (Buffer.contents buf, info)
+    Buffer.contents buf, info
 
   let pretty_print ?(init_c = 0) (renderer : Signature.renderer) (d : doc): unit =
     let _ = pretty_print_info ~init_c:init_c renderer d in
     ()
 
   let pretty_format ?(init_c = 0) (d : doc): string =
-    let (s, _) = pretty_format_info ~init_c:init_c d in s
+    let s, _ = pretty_format_info ~init_c:init_c d in s
 
   let pretty_format_debug ?(init_c = 0) (d : doc): string =
-    let (content, ({ is_tainted ; cost } : C.t Util.info)) =
-      pretty_format_info ~init_c:init_c d in
-    C.debug_format content is_tainted (C.string_of_cost cost)
+    let content, info = pretty_format_info ~init_c:init_c d in
+    C.debug_format content info.is_tainted (C.string_of_cost info.cost)
 end
-
 
 module MakeCompat (C : Signature.CostFactory): (Signature.PrinterCompatT with type cost = C.t) = struct
   include Make (C)
@@ -513,7 +527,11 @@ module MakeCompat (C : Signature.CostFactory): (Signature.PrinterCompatT with ty
   let (<>) = (^^)
 end
 
-let make_debug_format page_width content is_tainted cost =
+let make_debug_format
+    (page_width : int)
+    (content : string)
+    (is_tainted : bool)
+    (cost : string) : string =
   let lines = String.split_on_char '\n' content in
   let zero_code = Char.code '0' in
   let header = String.init
@@ -550,20 +568,20 @@ let default_cost_factory ~page_width ?computation_width () =
         let maxwc = max page_width pos in
         let a = maxwc - page_width in
         let b = stop - maxwc in
-        (b * (2*a + b), 0, 0)
+        b * (2*a + b), 0, 0
       else
-        (0, 0, 0)
+        0, 0, 0
 
-    let newline _ = (0, 0, 1)
+    let newline _ = 0, 0, 1
 
     let combine (o1, ot1, h1) (o2, ot2, h2) =
-      (o1 + o2, ot1 + ot2, h1 + h2)
+      o1 + o2, ot1 + ot2, h1 + h2
 
     let le c1 c2 = c1 <= c2
 
-    let two_columns_overflow w = (0, w, 0)
+    let two_columns_overflow w = 0, w, 0
 
-    let two_columns_bias     _ = (0, 0, 0)
+    let two_columns_bias _ = 0, 0, 0
 
     let string_of_cost (o, ot, h) = Printf.sprintf "(%d %d %d)" o ot h
 
