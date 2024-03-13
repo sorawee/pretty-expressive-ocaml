@@ -371,6 +371,22 @@ let test_two_columns_performance () =
      |> ignore;
      true)
 
+let test_different_renderer () =
+  let w = 20 in
+  let cf = Printer.default_cost_factory ~page_width:w () in
+  let module P = Printer.Make (val cf) in
+  let open P in
+
+  let d = text "while (true) {" ^^
+          nest 4
+            (nl ^^ text "f();" ^^ nl ^^ text "if (done())" ^^
+             (let exit_d = text "exit();" in
+              (space ^^ exit_d) <|> nest 4 (nl ^^ exit_d))) ^^
+          nl ^^ text "}"
+  in
+  Alcotest.(check string) "same string" vert_layout (pretty_format d);
+  Alcotest.(check string) "same string" vert_layout (pretty_format d)
+
 let () =
   Alcotest.run "pretty expressive"
     [ "example doc",
@@ -391,4 +407,7 @@ let () =
         "regression phantom space", `Quick, test_two_columns_regression_phantom;
         "cost factory - overflow", `Quick, test_two_columns_factory_overflow;
         "cost factory - bias", `Quick, test_two_columns_factory_bias;
-        "performance", `Slow, test_two_columns_performance ] ]
+        "performance", `Slow, test_two_columns_performance ];
+
+      "regression test",
+      [ "different renderer (issue #2)", `Quick, test_different_renderer ] ]

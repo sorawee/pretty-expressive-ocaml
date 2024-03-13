@@ -1,7 +1,9 @@
-## 0.5 (2024-02-16)
+## 0.5 (2024-03-13)
 
 * Improve performance in `two_columns` via the zipper data structure 
   and caching.
+* Fix a bug caused from a wrong renderer is used due to memoization.
+  Thanks to @zbyrn who reported the issue (#2)!
 
 ## 0.4 (2024-02-14)
 
