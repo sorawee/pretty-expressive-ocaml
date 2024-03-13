@@ -43,7 +43,7 @@ let print_doc (w : int) =
     f();
     if (done())
         exit();
-}</pre><h3 id="printer-construction"><a href="#printer-construction" class="anchor"></a>Printer Construction</h3><p>Most pretty printers are parameterized by a <i>page width limit</i>, which indicates the number of characters that each line should not exceed. <a href="Pretty_expressive/index.html"><code>Pretty_expressive</code></a> is instead parameterized by a <a href="#factory" title="factory"><i>cost factory</i></a>, which can control not only the page width limit, but also other aspects of prettiness. For the sake of simplicity, we will for now use a pre-defined cost factory <a href="Pretty_expressive/Printer/index.html#val-default_cost_factory" title="Pretty_expressive.Printer.default_cost_factory"><code>Printer.default_cost_factory</code></a>, which only allows the page width limit adjustment through the labeled argument <code>~page_width</code>. Thus, <code>let cf = Printer.default_cost_factory ~page_width:w ()</code> creates a (<a href="https://dev.realworldocaml.org/first-class-modules.html">first-class module</a>) cost factory <code>cf</code> that sets the page width limit to <code>w</code>.</p><p>The pretty printer can then be instantiated by using <a href="Pretty_expressive/Printer/Make/index.html" title="Pretty_expressive.Printer.Make"><code>Printer.Make</code></a>. It is a functor that consumes a <a href="Pretty_expressive/Signature/module-type-CostFactory/index.html" title="Pretty_expressive.Signature.CostFactory"><code>CostFactory</code></a> module. Here, <code>let module P = Printer.Make (val cf)</code> creates a pretty printer <code>P</code> with the above cost factory.</p><p>We then <code>let open P</code> so that combinators like <a href="Pretty_expressive/Printer/Make/index.html#val-text" title="Pretty_expressive.Printer.Make.text"><code>text</code></a>, <a href="Pretty_expressive/Printer/Make/index.html#val-(^^)" title="Pretty_expressive.Printer.Make.(^^)"><code>^^</code></a>, and the pretty printing function <a href="Pretty_expressive/Printer/Make/index.html#val-pretty_print" title="Pretty_expressive.Printer.Make.pretty_print"><code>pretty_print</code></a> are in scope.</p><h3 id="putting-them-all-together"><a href="#putting-them-all-together" class="anchor"></a>Putting them all together</h3><p>With the above setup, we can pretty-print <code>d</code> with the cost factory <code>cf</code> by calling <code>pretty_print d</code>. This returns a string that we can then put on screen.</p><p>Let's now actually use the pretty printer with page width limit of 80.</p><pre class="language-ocaml"><code># print_doc 80;;
+}</pre><h3 id="printer-construction"><a href="#printer-construction" class="anchor"></a>Printer Construction</h3><p>Most pretty printers are parameterized by a <i>page width limit</i>, which indicates the number of characters that each line should not exceed. <a href="Pretty_expressive/index.html"><code>Pretty_expressive</code></a> is instead parameterized by a <a href="#factory" title="factory"><i>cost factory</i></a>, which can control not only the page width limit, but also other aspects of prettiness. For the sake of simplicity, we will for now use a pre-defined cost factory <a href="Pretty_expressive/Printer/index.html#val-default_cost_factory" title="Pretty_expressive.Printer.default_cost_factory"><code>Printer.default_cost_factory</code></a>, which only allows the page width limit adjustment through the labeled argument <code>~page_width</code>. Thus, <code>let cf = Printer.default_cost_factory ~page_width:w ()</code> creates a (<a href="https://dev.realworldocaml.org/first-class-modules.html">first-class module</a>) cost factory <code>cf</code> that sets the page width limit to <code>w</code>.</p><p>The pretty printer can then be instantiated by using <a href="Pretty_expressive/Printer/Make/index.html" title="Pretty_expressive.Printer.Make"><code>Printer.Make</code></a>. It is a functor that consumes a <a href="Pretty_expressive/Signature/module-type-CostFactory/index.html" title="Pretty_expressive.Signature.CostFactory"><code>CostFactory</code></a> module. Here, <code>let module P = Printer.Make (val cf)</code> creates a pretty printer <code>P</code> with the above cost factory.</p><p>We then <code>let open P</code> so that combinators like <a href="Pretty_expressive/Printer/Make/index.html#val-text" title="Pretty_expressive.Printer.Make.text"><code>text</code></a>, <a href="Pretty_expressive/Printer/Make/index.html#val-(^^)" title="Pretty_expressive.Printer.Make.(^^)"><code>^^</code></a>, and the pretty printing function <a href="Pretty_expressive/Printer/Make/index.html#val-pretty_print" title="Pretty_expressive.Printer.Make.pretty_print"><code>pretty_print</code></a> are in scope.</p><h3 id="putting-them-all-together"><a href="#putting-them-all-together" class="anchor"></a>Putting them all together</h3><p>With the above setup, we can pretty-print <code>d</code> with the cost factory <code>cf</code> by calling <code>pretty_print print_string d</code>, which uses <code>print_string</code> to output content.</p><p>Let's now actually use the pretty printer with page width limit of 80.</p><pre class="language-ocaml"><code># print_doc 80;;
 while (true) {
     f();
     if (done()) exit();
@@ -108,12 +108,12 @@ rparen</code></pre><h3 id="complimit"><a href="#complimit" class="anchor"></a>Th
 
     let limit = F.limit
 
-    let text pos len = (F.text pos len, 0)
+    let text pos len = F.text pos len, 0
 
-    let newline _ = (F.newline 0, 0)
+    let newline _ = F.newline 0, 0
 
     let combine (c1, s1) (c2, s2) =
-      (F.combine c1 c2, s1 + s2)
+      F.combine c1 c2, s1 + s2
 
     let le (c1, s1) (c2, s2) =
       if c1 = c2 then
@@ -121,9 +121,9 @@ rparen</code></pre><h3 id="complimit"><a href="#complimit" class="anchor"></a>Th
       else
         F.le c1 c2
 
-    let two_columns_overflow w = (F.two_columns_overflow w, 0)
+    let two_columns_overflow w = F.two_columns_overflow w, 0
 
-    let two_columns_bias w = (F.two_columns_bias w, 0)
+    let two_columns_bias w = F.two_columns_bias w, 0
 
     let string_of_cost (c, s) = Printf.sprintf &quot;(%s %d)&quot; (F.string_of_cost c) s
 

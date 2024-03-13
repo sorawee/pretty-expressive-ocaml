@@ -96,9 +96,9 @@ CrossCode │
 
 is_tainted: false
 cost: (0 0 0)
-- : unit = ()</code></pre><p><code>cost</code> is especially useful in combination with <a href="../../../index.html#factory" title="factory">a custom cost factory</a>. See the section for further details.</p></div></div><h3 id="filler-documents"><a href="#filler-documents" class="anchor"></a>Filler documents</h3><div class="odoc-spec"><div class="spec value anchored" id="val-two_columns"><a href="#val-two_columns" class="anchor"></a><code><span><span class="keyword">val</span> two_columns : <span><span><span>(<a href="#type-doc">doc</a> * <a href="#type-doc">doc</a>)</span> list</span> <span class="arrow">&#45;&gt;</span></span> <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p>(<b>experimental</b>) <code>two_columns ds</code> is a document that lays out the documents in <code>ds</code> in two columns by inserting spaces between the two columns in each row.</p><p>Note that this is <b>not quite</b> a table layout, because:</p><ul><li>In each row, the right column will start at the same line as the last line of the left column. The <code>print_doc_let_nl 33</code> example below demonstrates this.</li><li>The restriction to not exceed the column separator only applies to the last line of the left column. The prior lines can freely exceed the column separator. The <code>print_doc_let_nl 33</code> example below demonstrates this.</li><li>The right column's non-first lines can flow back to the beginning of the left column (use <a href="../../Printer/Make/index.html#val-align" title="Printer.Make.align"><code>align</code></a> to restrict the right column content from flowing back). The <code>print_doc_match 54</code> example below demonstrates this.</li></ul><p>Also note that some rows <i>may</i> overflow the column separator anyway (e.g. in order to avoid the global overflow over the page width limit).</p><p>The cost of the overflow over the column separator can be adjusted via <a href="../module-type-CostFactory/index.html#val-two_columns_overflow" title="Signature.CostFactory.two_columns_overflow"><code>CostFactory.two_columns_overflow</code></a> (this particularly can be used to strongly discourage overflow over the column separator). The cost to prefer the leftmost column separator can be adjusted via <a href="../module-type-CostFactory/index.html#val-two_columns_bias" title="Signature.CostFactory.two_columns_bias"><code>CostFactory.two_columns_bias</code></a>. Meanwhile, the cost for the inserted spaces between the two columns is always fixed to <code>CostFactory.text 0 0</code>.</p><p>The indentation level is set to the initial current column position (in the same manner as <a href="../../Printer/Make/index.html#val-align" title="Printer.Make.align"><code>align</code></a>) so that on entering a new line, the left column of the next row starts at the right position.</p><p>Unlike <a href="https://hackage.haskell.org/package/wl-pprint-1.2.1/docs/Text-PrettyPrint-Leijen.html#v:fill"><code>fill</code></a> or <a href="https://hackage.haskell.org/package/wl-pprint-1.2.1/docs/Text-PrettyPrint-Leijen.html#v:fillBreak"><code>fillBreak</code></a> from Wadler/Leijen's pretty printer, which requires users to specify a fixed position of the column separator, <code>two_columns</code> will find the position automatically, and will find a &quot;fitting&quot; one.</p><p>This document is expensive. Internally, it expands to a very large document. Don't use it if the input list is long!</p><p>Examples:</p><p>The <code>types</code> example is taken from <a href="https://hackage.haskell.org/package/wl-pprint-1.2.1/docs/Text-PrettyPrint-Leijen.html#v:fill">https://hackage.haskell.org/package/wl-pprint-1.2.1/docs/Text-PrettyPrint-Leijen.html#v:fill</a></p><pre class="language-ocaml"><code># let types = [ (&quot;empty&quot;,     &quot;Doc&quot;) ;
-                (&quot;nest&quot;,      &quot;Int -&gt; Doc -&gt; Doc&quot;) ;
-                (&quot;linebreak&quot;, &quot;Doc&quot;) ];;
+- : unit = ()</code></pre><p><code>cost</code> is especially useful in combination with <a href="../../../index.html#factory" title="factory">a custom cost factory</a>. See the section for further details.</p></div></div><h3 id="filler-documents"><a href="#filler-documents" class="anchor"></a>Filler documents</h3><div class="odoc-spec"><div class="spec value anchored" id="val-two_columns"><a href="#val-two_columns" class="anchor"></a><code><span><span class="keyword">val</span> two_columns : <span><span><span>(<a href="#type-doc">doc</a> * <a href="#type-doc">doc</a>)</span> list</span> <span class="arrow">&#45;&gt;</span></span> <a href="#type-doc">doc</a></span></code></div><div class="spec-doc"><p>(<b>experimental</b>) <code>two_columns ds</code> is a document that lays out the documents in <code>ds</code> in two columns by inserting spaces between the two columns in each row.</p><p>Note that this is <b>not quite</b> a table layout, because:</p><ul><li>In each row, the right column will start at the same line as the last line of the left column. The <code>print_doc_let_nl 33</code> example below demonstrates this.</li><li>The restriction to not exceed the column separator only applies to the last line of the left column. The prior lines can freely exceed the column separator. The <code>print_doc_let_nl 33</code> example below demonstrates this.</li><li>The right column's non-first lines can flow back to the beginning of the left column (use <a href="../../Printer/Make/index.html#val-align" title="Printer.Make.align"><code>align</code></a> to restrict the right column content from flowing back). The <code>print_doc_match 54</code> example below demonstrates this.</li></ul><p>Also note that some rows <i>may</i> overflow the column separator anyway (e.g. in order to avoid the global overflow over the page width limit).</p><p>The cost of the overflow over the column separator can be adjusted via <a href="../module-type-CostFactory/index.html#val-two_columns_overflow" title="Signature.CostFactory.two_columns_overflow"><code>CostFactory.two_columns_overflow</code></a> (this particularly can be used to strongly discourage overflow over the column separator). The cost to prefer the leftmost column separator can be adjusted via <a href="../module-type-CostFactory/index.html#val-two_columns_bias" title="Signature.CostFactory.two_columns_bias"><code>CostFactory.two_columns_bias</code></a>. Meanwhile, the cost for the inserted spaces between the two columns is always fixed to <code>CostFactory.text 0 0</code>.</p><p>The indentation level is set to the initial current column position (in the same manner as <a href="../../Printer/Make/index.html#val-align" title="Printer.Make.align"><code>align</code></a>) so that on entering a new line, the left column of the next row starts at the right position.</p><p>Unlike <a href="https://hackage.haskell.org/package/wl-pprint-1.2.1/docs/Text-PrettyPrint-Leijen.html#v:fill"><code>fill</code></a> or <a href="https://hackage.haskell.org/package/wl-pprint-1.2.1/docs/Text-PrettyPrint-Leijen.html#v:fillBreak"><code>fillBreak</code></a> from Wadler/Leijen's pretty printer, which requires users to specify a fixed position of the column separator, <code>two_columns</code> will find the position automatically, and will find a &quot;fitting&quot; one.</p><p>This document is expensive. Internally, it expands to a very large document. Don't use it if the input list is long!</p><p>Examples:</p><p>The <code>types</code> example is taken from <a href="https://hackage.haskell.org/package/wl-pprint-1.2.1/docs/Text-PrettyPrint-Leijen.html#v:fill">https://hackage.haskell.org/package/wl-pprint-1.2.1/docs/Text-PrettyPrint-Leijen.html#v:fill</a></p><pre class="language-ocaml"><code># let types = [ &quot;empty&quot;,     &quot;Doc&quot;;
+                &quot;nest&quot;,      &quot;Int -&gt; Doc -&gt; Doc&quot;;
+                &quot;linebreak&quot;, &quot;Doc&quot; ];;
 val types : (string * string) list =
   [(&quot;empty&quot;, &quot;Doc&quot;); (&quot;nest&quot;, &quot;Int -&gt; Doc -&gt; Doc&quot;); (&quot;linebreak&quot;, &quot;Doc&quot;)]</code></pre><pre class="language-ocaml"><code># let print_doc_let w =
     let cf = Printer.default_cost_factory ~page_width:w () in
@@ -106,8 +106,7 @@ val types : (string * string) list =
     let open P in
     let d = text &quot;let &quot; ^^
             two_columns (List.map
-                           (fun (n, t) -&gt;
-                              (text n, text &quot; :: &quot; ^^ text t))
+                           (fun (n, t) -&gt; text n, text &quot; :: &quot; ^^ text t)
                            types) in
     pretty_format_debug d |&gt; print_endline;;
 val print_doc_let : int -&gt; unit = &lt;fun&gt;</code></pre><pre class="language-ocaml"><code># print_doc_let 34;;
@@ -141,8 +140,8 @@ cost: (1 6 2)
     let d = text &quot;let &quot; ^^
             two_columns (List.map
                            (fun (n, t) -&gt;
-                              (text n ^^ (nl &lt;|&gt; empty),
-                               text &quot; :: &quot; ^^ text t))
+                              text n ^^ group break,
+                              text &quot; :: &quot; ^^ text t)
                            types) in
     pretty_format_debug d |&gt; print_endline;;
 val print_doc_let_nl : int -&gt; unit = &lt;fun&gt;</code></pre><pre class="language-ocaml"><code># print_doc_let_nl 34;;
@@ -173,9 +172,9 @@ let empty                   │
 
 is_tainted: false
 cost: (0 0 5)
-- : unit = ()</code></pre><pre class="language-ocaml"><code># let table = [ (&quot;[]&quot;,                        &quot;false&quot;) ;
-                (&quot;hd :: _ when hd = to_find&quot;, &quot;true&quot;) ;
-                (&quot;_ :: tl&quot;,                   &quot;find_member to_find tl&quot;) ];;
+- : unit = ()</code></pre><pre class="language-ocaml"><code># let table = [ &quot;[]&quot;,                        &quot;false&quot;;
+                &quot;hd :: _ when hd = to_find&quot;, &quot;true&quot;;
+                &quot;_ :: tl&quot;,                   &quot;find_member to_find tl&quot; ];;
 val table : (string * string) list =
   [(&quot;[]&quot;, &quot;false&quot;); (&quot;hd :: _ when hd = to_find&quot;, &quot;true&quot;);
    (&quot;_ :: tl&quot;, &quot;find_member to_find tl&quot;)]</code></pre><pre class="language-ocaml"><code># let print_doc_match w =
@@ -189,7 +188,7 @@ val table : (string * string) list =
                 (List.map
                    (fun (n, t) -&gt;
                      (text &quot;| &quot; ^^ text n,
-                       text &quot; -&gt; &quot; ^^ ((nl ^^ text &quot;  &quot;) &lt;|&gt; empty) ^^
+                       text &quot; -&gt;&quot; ^^ group (nest 2 nl) ^^
                        text t))
                    table)) in
     pretty_format_debug d |&gt; print_endline;;
