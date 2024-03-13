@@ -25,5 +25,5 @@
  (description "A pretty printer implementation of 'A Pretty Expressive Printer' (OOPSLA'23), with an emphasis on expressiveness and optimality.")
  (depends (ocaml (>= 4.05))
           dune
-          (mdx      (and (>= 2.3.0) :with-test))
+          (mdx      (and (>= 2.3.0) (<= 2.3.1) :with-test))
           (alcotest :with-test)))

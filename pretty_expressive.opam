@@ -13,7 +13,7 @@ bug-reports: "https://github.com/sorawee/pretty-expressive-ocaml/issues"
 depends: [
   "ocaml" {>= "4.05"}
   "dune" {>= "3.10"}
-  "mdx" {>= "2.3.0" & with-test}
+  "mdx" {>= "2.3.0" & <= "2.3.1" & with-test}
   "alcotest" {with-test}
   "odoc" {with-doc}
 ]
