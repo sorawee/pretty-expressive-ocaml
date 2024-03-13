@@ -27,7 +27,7 @@ module Core (C : Signature.CostFactory) = struct
     global_id := id + 1;
     id
 
-  type measure = { last: int; cost: C.t; layout: unit -> unit }
+  type measure = { last: int; cost: C.t; layout: Signature.renderer -> unit }
 
   let (<==) (m1 : measure) (m2 : measure): bool =
     m1.last <= m2.last && C.le m1.cost m2.cost
@@ -236,9 +236,9 @@ module Core (C : Signature.CostFactory) = struct
   let (++) (m1 : measure) (m2 : measure): measure =
     { last = m2.last;
       cost = C.combine m1.cost m2.cost;
-      layout = fun () ->
-        m1.layout ();
-        m2.layout () }
+      layout = fun renderer ->
+        m1.layout renderer;
+        m2.layout renderer }
 
   let process_concat
       (process_left : measure -> measure_set)
@@ -395,11 +395,11 @@ module Core (C : Signature.CostFactory) = struct
         | Text (s, len_s) ->
           MeasureSet [{ last = c + len_s;
                         cost = C.text c len_s;
-                        layout = fun () -> render_tree renderer s }]
+                        layout = fun renderer -> render_tree renderer s }]
         | Newline _ ->
           MeasureSet [{ last = i;
                         cost = C.newline i;
-                        layout = fun () ->
+                        layout = fun renderer ->
                           renderer "\n";
                           renderer (String.make i ' ') }]
         | Concat (d1, d2) ->
@@ -421,7 +421,7 @@ module Core (C : Signature.CostFactory) = struct
         | Blank i ->
           MeasureSet [{ last = c + i;
                         cost = C.text 0 0;
-                        layout = fun () -> renderer (String.make i ' ') }]
+                        layout = fun renderer -> renderer (String.make i ' ') }]
         | Evaled ms -> ms
         | Fail -> failwith "fails to render"
       in
@@ -439,7 +439,7 @@ module Core (C : Signature.CostFactory) = struct
     (* so the memoization tables should be cleared. *)
     (* However, in OCaml, there is no need to do the same, *)
     (* since a doc is tied to a cost factory. *)
-    m.layout ();
+    m.layout renderer;
     { is_tainted ; cost = m.cost }
 end
 
