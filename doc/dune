@@ -1,4 +1,5 @@
 (documentation
  (package pretty_expressive))
 
-(mdx (preludes prelude.ml))
+(mdx (deps (package pretty_expressive))
+     (preludes prelude.ml))
