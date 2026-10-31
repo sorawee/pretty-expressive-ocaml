@@ -6,4 +6,5 @@
  (modules_without_implementation signature))
 
 (mdx (files :standard *.mli)
+     (deps (package pretty_expressive))
      (preludes prelude.ml))
